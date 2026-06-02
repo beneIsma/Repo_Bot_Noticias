@@ -199,8 +199,7 @@ def main_menu_keyboard():
 
 async def show_main_menu(client, chat_id, message_id=None):
     text = (
-        "🎛️ *Panel de Control - Tech Digest Bot*\n\n"
-        "Controla tu bot de noticias desde el móvil.\n"
+        "🎛️ *Panel de Control v3.0*\n\n"
         "Elige una opción:"
     )
     keyboard = main_menu_keyboard()
