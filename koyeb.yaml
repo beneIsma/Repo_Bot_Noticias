@@ -1,0 +1,19 @@
+name: tech-digest-bot
+services:
+  - name: panel-telegram
+    type: web
+    git:
+      branch: main
+    build:
+      buildCommand: pip install -r requirements.txt
+    run:
+      command: python telegram_bot.py
+    ports:
+      - port: 8080
+        protocol: http
+    checks:
+      - type: http
+        port: 8080
+        path: /
+        initialDelay: 10
+        period: 30

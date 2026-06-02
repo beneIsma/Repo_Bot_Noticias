@@ -1,0 +1,60 @@
+name: 🤖 Tech Digest Bot — Daily Digest
+
+on:
+  # ── Ejecución automática diaria ──────────────────────────────
+  # Cron en UTC. Ajusta la hora a tu zona horaria:
+  #   07:00 Madrid (invierno UTC+1) → "0 6 * * *"
+  #   07:00 Madrid (verano UTC+2)   → "0 5 * * *"
+  #   08:00 UTC+1 (solo laborales)   → "0 7 * * 1-5"
+  schedule:
+    - cron: "0 6 * * *"   # Todos los días a las 07:00 CET (invierno)
+
+  # ── Ejecución manual desde la UI de GitHub ───────────────────
+  workflow_dispatch:
+    inputs:
+      bot_version:
+        description: 'Versión del bot a ejecutar'
+        required: true
+        default: 'v2'
+        type: choice
+        options:
+          - v2 (Recomendado)
+          - v1
+
+jobs:
+  send-digest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: 📋 Checkout repositorio
+        uses: actions/checkout@v4
+
+      - name: 🐍 Configurar Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: 📦 Instalar dependencias
+        run: pip install -r requirements.txt -q
+
+      - name: 🤖 Ejecutar Tech Digest Bot v2
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+        run: |
+          echo "⏱️  Iniciando bot..."
+          python bot_v2.py
+          echo "✅ Bot completado"
+
+      - name: 📊 Resumen de ejecución
+        if: always()
+        run: |
+          echo "==================================="
+          echo "✅ Workflow completado exitosamente"
+          echo "🕒 Hora: $(date)"
+          echo "==================================="

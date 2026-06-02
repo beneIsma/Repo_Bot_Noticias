@@ -1,0 +1,189 @@
+# ─────────────────────────────────────────────────────────────
+# sources.yaml — Fuentes del Tech Digest Bot
+# Edita este fichero para añadir o eliminar fuentes sin tocar el código.
+# ─────────────────────────────────────────────────────────────
+
+# ── RSS Feeds ────────────────────────────────────────────────
+rss_feeds:
+
+  # IA & Machine Learning
+  - name: "TechCrunch AI"
+    url: "https://techcrunch.com/category/artificial-intelligence/feed/"
+    tags: ["ia"]
+
+  - name: "MIT Technology Review"
+    url: "https://www.technologyreview.com/feed/"
+    tags: ["ia", "tech"]
+
+  - name: "The Verge"
+    url: "https://www.theverge.com/rss/index.xml"
+    tags: ["industria"]
+
+  - name: "Wired"
+    url: "https://www.wired.com/feed/rss"
+    tags: ["industria"]
+
+  - name: "Hugging Face Blog"
+    url: "https://huggingface.co/blog/feed.xml"
+    tags: ["ia"]
+
+  - name: "OpenAI Blog"
+    url: "https://openai.com/news/rss.xml"
+    tags: ["ia"]
+
+  - name: "Google DeepMind Blog"
+    url: "https://deepmind.google/blog/rss.xml"
+    tags: ["ia"]
+
+  - name: "Meta AI Blog"
+    url: "https://ai.meta.com/blog/feed/"
+    tags: ["ia"]
+
+  - name: "ArXiv cs.AI"
+    url: "https://rss.arxiv.org/rss/cs.AI"
+    tags: ["ia"]
+
+  - name: "ArXiv cs.LG (Machine Learning)"
+    url: "https://rss.arxiv.org/rss/cs.LG"
+    tags: ["ia"]
+
+  # Desarrollo & Open Source
+  - name: "GitHub Blog"
+    url: "https://github.blog/feed/"
+    tags: ["dev"]
+
+  - name: "InfoQ"
+    url: "https://feed.infoq.com/"
+    tags: ["dev"]
+
+  - name: "Dev.to Top"
+    url: "https://dev.to/feed"
+    tags: ["dev"]
+
+  - name: "CSS-Tricks"
+    url: "https://css-tricks.com/feed/"
+    tags: ["dev"]
+
+  - name: "freeCodeCamp"
+    url: "https://www.freecodecamp.org/news/rss/"
+    tags: ["dev"]
+
+  # Robótica & Hardware
+  - name: "IEEE Spectrum Robotics"
+    url: "https://spectrum.ieee.org/feeds/topic/robotics.rss"
+    tags: ["robotica"]
+
+  - name: "IEEE Spectrum AI"
+    url: "https://spectrum.ieee.org/feeds/topic/artificial-intelligence.rss"
+    tags: ["ia", "robotica"]
+
+  # Tech & Industria
+  - name: "Ars Technica"
+    url: "https://feeds.arstechnica.com/arstechnica/index"
+    tags: ["industria"]
+
+  - name: "VentureBeat AI"
+    url: "https://venturebeat.com/ai/feed/"
+    tags: ["ia", "industria"]
+
+  # Español — Tech & Startups
+  - name: "El País Tecnología"
+    url: "https://feeds.elpais.com/mrss-s/pages/ep/site/elpais.com/section/tecnologia/portada"
+    tags: ["industria"]
+
+  - name: "Computer Hoy"
+    url: "https://computerhoy.20minutos.es/rss/"
+    tags: ["dev", "industria"]
+
+  - name: "Hipertextual"
+    url: "https://hipertextual.com/feed"
+    tags: ["ia", "industria"]
+
+
+# ── Hacker News ───────────────────────────────────────────────
+hackernews:
+  enabled: true
+  top_n: 20
+
+
+# ── Dev.to ───────────────────────────────────────────────────
+devto:
+  tags:
+    - "ai"
+    - "machinelearning"
+    - "python"
+    - "webdev"
+    - "opensource"
+  per_page: 8
+
+
+# ── Reddit ───────────────────────────────────────────────────
+reddit_subreddits:
+  - name: "MachineLearning"
+  - name: "LocalLLaMA"
+  - name: "programming"
+
+
+# ── Canales de YouTube ───────────────────────────────────────
+youtube_channels:
+  # IA & Deep Learning
+  - name: "Andrej Karpathy"
+    channel_id: "UCbmNph6atAoGfqLoCL_duAg"
+
+  - name: "Two Minute Papers"
+    channel_id: "UCbfYPyITQ-7l4upoX8nvctg"
+
+  - name: "Yannic Kilcher"
+    channel_id: "UCZHmQk67mSJgfCCTn7xBfew"
+
+  - name: "Lex Fridman"
+    channel_id: "UCSHZKyawb77ixDdsGog4iWA"
+
+  - name: "AI Explained"
+    channel_id: "UCNJ1Ymd5yFuUPtn21xtRbbw"
+
+  - name: "Matt Wolfe (AI Tools)"
+    channel_id: "UCxX9wt5FWQUAAz4UrysqK9A"
+
+  # Español — IA
+  - name: "DotCSV"
+    channel_id: "UCy5znSnfMsDwaLlROnZ7Qbg"
+
+  - name: "Jon Hernandez IA"
+    handle: "@la_inteligencia_artificial"
+
+  # Español — Programación
+  - name: "midudev"
+    channel_id: "UC8LeXCWOalN8SxlrPcG-PaQ"
+
+  - name: "MoureDev"
+    channel_id: "UCxPD7bsocoAMq8Dj18kmGyQ"
+
+  - name: "BettaTech"
+    handle: "@BettaTech"
+
+  - name: "Aleja Vivi Rivera"
+    handle: "@alejavirivera"
+
+  - name: "Victor Robles"
+    handle: "@victorroblesweb"
+
+  - name: "Edwin Fernando Arenas"
+    handle: "@EdwinFernandoArenas"
+
+  # Programación & Dev (Global)
+  - name: "Fireship"
+    channel_id: "UCsBjURrPoezykLs9EqgamOA"
+
+  - name: "Theo (t3.gg)"
+    channel_id: "UCbRP3c757lWg9M-U7TyEkXA"
+
+  - name: "ThePrimeagen"
+    channel_id: "UC8ENHE5xdFSwx71WHd4J1SQ"
+
+  # Matemáticas & Ciencia
+  - name: "3Blue1Brown"
+    channel_id: "UCYO_jab_esuFRV4b17AJtAg"
+
+  - name: "Veritasium"
+    channel_id: "UCHnyfMqiRRG1u-2MsSQLbXA"

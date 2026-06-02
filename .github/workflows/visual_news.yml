@@ -1,0 +1,39 @@
+name: Visual News Bot — Tiempo Real
+
+on:
+  schedule:
+    # Cada 5 minutos, las 24 horas, todos los dias
+    - cron: "*/5 * * * *"
+
+  # Trigger manual desde GitHub UI
+  workflow_dispatch:
+
+jobs:
+  send-visual-news:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Instalar dependencias
+        run: pip install -r requirements.txt -q
+
+      - name: Ejecutar Visual News Bot
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+        run: |
+          echo "Iniciando visual_news_bot..."
+          python visual_news_bot.py
+          echo "Completado"
