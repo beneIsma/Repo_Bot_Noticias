@@ -45,32 +45,49 @@ SOURCES_FILE = "sources.yaml"
 
 
 def sync_yaml_to_db():
-    """Sincroniza las fuentes de sources.yaml a la BD para que aparezcan en el panel."""
+    """Sincroniza TODAS las fuentes de sources.yaml a la BD (upsert por nombre)."""
     try:
         with open(SOURCES_FILE, "r", encoding="utf-8") as f:
             sources = yaml.safe_load(f)
 
-        db = DatabaseManager()
+        _db = DatabaseManager()
+
+        # Obtener nombres ya existentes en BD
+        existing = {s["name"] for s in _db.get_sources()}
+
+        added = 0
 
         # RSS feeds
         for feed in sources.get("rss_feeds", []):
-            category = feed.get("tags", ["default"])[0]
-            db.add_source(feed["name"], "RSS Feed", feed["url"], category)
+            if feed["name"] not in existing:
+                category = feed.get("tags", ["default"])[0]
+                _db.add_source(feed["name"], "RSS Feed", feed["url"], category)
+                added += 1
 
         # YouTube channels
         for ch in sources.get("youtube_channels", []):
-            url = ch.get("channel_id", ch.get("handle", ""))
-            db.add_source(ch["name"], "YouTube", url, "youtube")
+            if ch["name"] not in existing:
+                url = ch.get("channel_id", "") or ch.get("handle", "")
+                _db.add_source(ch["name"], "YouTube", url, "youtube")
+                added += 1
 
         # Hacker News
         if sources.get("hackernews", {}).get("enabled", True):
-            db.add_source("Hacker News", "Hacker News",
-                         "https://hacker-news.firebaseio.com", "dev")
+            if "Hacker News" not in existing:
+                _db.add_source("Hacker News", "Hacker News",
+                               "https://hacker-news.firebaseio.com", "dev")
+                added += 1
 
         # Reddit
         for sub in sources.get("reddit_subreddits", []):
-            db.add_source(f"r/{sub['name']}", "Reddit",
-                         f"https://reddit.com/r/{sub['name']}", "dev")
+            name = f"r/{sub['name']}"
+            if name not in existing:
+                _db.add_source(name, "Reddit",
+                               f"https://reddit.com/r/{sub['name']}", "dev")
+                added += 1
+
+        total = len(_db.get_sources())
+        log.info(f"Sync fuentes: {added} nuevas añadidas, {total} total en BD")
 
     except Exception as e:
         log.warning(f"Error sincronizando fuentes: {e}")
