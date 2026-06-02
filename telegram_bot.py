@@ -18,9 +18,11 @@ from config import AI_MODELS, CATEGORIES, DEFAULT_SYSTEM_PROMPT
 
 
 # ─── Health check HTTP (mantiene vivo el servicio en Render) ─────────────────
+VERSION = "v3.1"
+
 class HealthHandler(BaseHTTPRequestHandler):
     def do_GET(self):
-        body = b"OK"
+        body = f"OK {VERSION}".encode()
         self.send_response(200)
         self.send_header("Content-Type", "text/plain")
         self.send_header("Content-Length", str(len(body)))
