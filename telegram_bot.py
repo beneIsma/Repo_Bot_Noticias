@@ -4,12 +4,14 @@ Controla el bot de noticias directamente desde tu móvil
 """
 
 import os
+import re
 import asyncio
 import logging
 import json
 import threading
 import httpx
 import yaml
+import feedparser
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from db_manager import DatabaseManager
 from config import AI_MODELS, CATEGORIES, DEFAULT_SYSTEM_PROMPT
@@ -167,12 +169,13 @@ async def get_updates(client: httpx.AsyncClient, offset: int = 0):
 
 def main_menu_keyboard():
     return [
-        [{"text": "📋 Gestión de Fuentes", "callback_data": "menu_sources"}],
-        [{"text": "📰 Curación de Noticias", "callback_data": "menu_curation"}],
-        [{"text": "⚙️ Configuración", "callback_data": "menu_config"}],
-        [{"text": "📚 Historial", "callback_data": "menu_history"}],
-        [{"text": "📊 Estadísticas", "callback_data": "menu_stats"}],
-        [{"text": "📋 Logs", "callback_data": "menu_logs"}],
+        [{"text": "📋 Gestión de Fuentes",      "callback_data": "menu_sources"}],
+        [{"text": "📰 Curación de Noticias",     "callback_data": "menu_curation"}],
+        [{"text": "🎥 Videos de YouTubers",      "callback_data": "menu_youtube"}],
+        [{"text": "⚙️ Configuración",             "callback_data": "menu_config"}],
+        [{"text": "📚 Historial",                 "callback_data": "menu_history"}],
+        [{"text": "📊 Estadísticas",              "callback_data": "menu_stats"}],
+        [{"text": "📋 Logs",                      "callback_data": "menu_logs"}],
     ]
 
 
@@ -475,6 +478,165 @@ async def show_manage_categories(client, chat_id, message_id):
 
 
 # ════════════════════════════════════════════════════════════════════════════
+# 🎥 VIDEOS DE YOUTUBERS
+# ════════════════════════════════════════════════════════════════════════════
+
+def get_youtube_video_id(url: str) -> str | None:
+    m = re.search(r"(?:v=|youtu\.be/)([^&\s?]+)", url)
+    return m.group(1) if m else None
+
+
+async def fetch_youtube_videos(client: httpx.AsyncClient, max_per_channel: int = 3) -> list[dict]:
+    """Obtiene los últimos videos de todos los canales YouTube configurados."""
+    with open(SOURCES_FILE, "r", encoding="utf-8") as f:
+        sources = yaml.safe_load(f)
+
+    channels = sources.get("youtube_channels", [])
+    videos = []
+    headers = {"User-Agent": "TechDigestBot/2.0"}
+
+    for ch in channels:
+        channel_id = ch.get("channel_id", "")
+        handle     = ch.get("handle", "")
+        name       = ch.get("name", "")
+
+        # Resolver handle si no hay channel_id
+        if not channel_id and handle:
+            h = handle.lstrip("@")
+            try:
+                res = db.client.table("youtube_handles").select("channel_id").eq("handle", f"@{h}").execute()
+                if res.data:
+                    channel_id = res.data[0]["channel_id"]
+            except Exception:
+                pass
+
+        if not channel_id:
+            continue
+
+        try:
+            url  = f"https://www.youtube.com/feeds/videos.xml?channel_id={channel_id}"
+            r    = await client.get(url, headers=headers, timeout=10)
+            feed = feedparser.parse(r.text)
+
+            for entry in feed.entries[:max_per_channel]:
+                video_url = entry.get("link", "")
+                vid_id    = get_youtube_video_id(video_url)
+                videos.append({
+                    "channel": name,
+                    "title":   entry.get("title", "Sin título"),
+                    "url":     video_url,
+                    "thumb":   f"https://img.youtube.com/vi/{vid_id}/hqdefault.jpg" if vid_id else "",
+                    "date":    entry.get("published", "")[:10],
+                })
+        except Exception:
+            continue
+
+    return videos
+
+
+async def show_youtube_menu(client, chat_id, message_id):
+    """Menú de opciones para videos YouTube."""
+    with open(SOURCES_FILE, "r", encoding="utf-8") as f:
+        sources = yaml.safe_load(f)
+    n_channels = len(sources.get("youtube_channels", []))
+
+    text = (
+        f"🎥 *Videos de YouTubers*\n\n"
+        f"Tienes *{n_channels} canales* configurados.\n\n"
+        f"Elige cuántos videos por canal quieres ver:"
+    )
+    keyboard = [
+        [{"text": "▶️ Último video de cada canal",     "callback_data": "yt_send_1"}],
+        [{"text": "▶️▶️ Últimos 3 videos por canal",   "callback_data": "yt_send_3"}],
+        [{"text": "📋 Solo listar (sin enviar al canal)", "callback_data": "yt_list"}],
+        [{"text": "🏠 Menú Principal",                 "callback_data": "main_menu"}],
+    ]
+    await edit_message(client, chat_id, message_id, text, keyboard)
+
+
+async def send_youtube_videos_to_channel(client, chat_id, message_id, max_per_channel: int):
+    """Envía los videos al canal de Telegram visualmente."""
+    await edit_message(client, chat_id, message_id,
+        "⏳ *Obteniendo videos...*\nEsto puede tardar unos segundos.",
+        [[{"text": "⏳ Cargando...", "callback_data": "main_menu"}]]
+    )
+
+    async with httpx.AsyncClient(follow_redirects=True) as fetch_client:
+        videos = await fetch_youtube_videos(fetch_client, max_per_channel)
+
+    if not videos:
+        await edit_message(client, chat_id, message_id,
+            "❌ No se pudieron obtener videos.",
+            [[{"text": "🏠 Menú Principal", "callback_data": "main_menu"}]]
+        )
+        return
+
+    # Enviar separador al canal
+    await client.post(f"{BASE_URL}/sendMessage", json={
+        "chat_id": TELEGRAM_CHAT_ID,
+        "text": f"🎥 <b>Videos de tus YouTubers — {len(videos)} videos</b>",
+        "parse_mode": "HTML",
+    }, timeout=15)
+
+    sent = 0
+    for v in videos:
+        vid_id = get_youtube_video_id(v["url"])
+        caption = (
+            f"🎥 <b>{v['title'][:100]}</b>\n\n"
+            f"📍 <i>{v['channel']}</i>\n"
+            f"📅 {v['date']}\n"
+            f"🔗 {v['url']}"
+        )
+        payload = {
+            "chat_id": TELEGRAM_CHAT_ID,
+            "caption": caption,
+            "parse_mode": "HTML",
+            "reply_markup": {"inline_keyboard": [[{"text": "▶️ Ver Video", "url": v["url"]}]]},
+        }
+        if v["thumb"]:
+            payload["photo"] = v["thumb"]
+            r = await client.post(f"{BASE_URL}/sendPhoto", json=payload, timeout=15)
+        else:
+            payload["text"] = caption
+            r = await client.post(f"{BASE_URL}/sendMessage", json=payload, timeout=15)
+
+        if r.json().get("ok"):
+            sent += 1
+        await asyncio.sleep(1)
+
+    # Confirmar en el chat privado
+    await edit_message(client, chat_id, message_id,
+        f"✅ *{sent} videos enviados al canal*",
+        [[{"text": "🎥 Ver más videos", "callback_data": "menu_youtube"},
+          {"text": "🏠 Menú Principal", "callback_data": "main_menu"}]]
+    )
+
+
+async def list_youtube_videos(client, chat_id, message_id):
+    """Lista los videos en el chat privado (sin enviar al canal)."""
+    await edit_message(client, chat_id, message_id,
+        "⏳ *Obteniendo videos...*", None)
+
+    async with httpx.AsyncClient(follow_redirects=True) as fetch_client:
+        videos = await fetch_youtube_videos(fetch_client, max_per_channel=2)
+
+    if not videos:
+        text = "❌ No se encontraron videos."
+    else:
+        text = f"🎥 *Últimos videos ({len(videos)})*\n\n"
+        for v in videos:
+            text += f"*{v['channel']}*\n"
+            text += f"📹 [{v['title'][:60]}]({v['url']})\n"
+            text += f"📅 {v['date']}\n\n"
+
+    keyboard = [
+        [{"text": "📤 Enviar al Canal", "callback_data": "yt_send_1"}],
+        [{"text": "🏠 Menú Principal",  "callback_data": "main_menu"}],
+    ]
+    await edit_message(client, chat_id, message_id, text, keyboard)
+
+
+# ════════════════════════════════════════════════════════════════════════════
 # 4. HISTORIAL
 # ════════════════════════════════════════════════════════════════════════════
 
@@ -700,6 +862,16 @@ async def handle_callback(client, callback):
         user_states[chat_id] = {"step": "search_news"}
         keyboard = [[{"text": "❌ Cancelar", "callback_data": "menu_history"}]]
         await edit_message(client, chat_id, message_id, "🔍 *Escribe la palabra a buscar:*", keyboard)
+
+    # ─── Videos YouTube ───────────────────────────────────────────────────
+    elif data == "menu_youtube":
+        await show_youtube_menu(client, chat_id, message_id)
+    elif data == "yt_send_1":
+        await send_youtube_videos_to_channel(client, chat_id, message_id, max_per_channel=1)
+    elif data == "yt_send_3":
+        await send_youtube_videos_to_channel(client, chat_id, message_id, max_per_channel=3)
+    elif data == "yt_list":
+        await list_youtube_videos(client, chat_id, message_id)
 
     # ─── Estadísticas ─────────────────────────────────────────────────────
     elif data == "menu_stats":

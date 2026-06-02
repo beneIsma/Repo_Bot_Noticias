@@ -190,6 +190,15 @@ youtube_channels:
   - name: "Edwin Fernando Arenas"
     handle: "@EdwinFernandoArenas"
 
+  - name: "Agustin Medina IA"
+    handle: "@agustinmedinaIA"
+
+  - name: "Luciano Cutipa"
+    handle: "@Luciano.Cutipa"
+
+  - name: "Conciencia Artificial"
+    handle: "@Conciencia_Artificial"
+
   # Programación & Dev (Global)
   - name: "Fireship"
     channel_id: "UCsBjURrPoezykLs9EqgamOA"
