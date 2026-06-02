@@ -331,16 +331,16 @@ async def translate_batch(client: httpx.AsyncClient, items: list[dict]) -> list[
     ]
 
     prompt = (
-        "Traduce al español los siguientes artículos tecnológicos.\n"
-        "Devuelve SOLO un JSON array:\n"
-        '[{"i": 0, "title_es": "...", "summary_es": "..."}]\n\n'
-        "Reglas:\n"
-        "- title_es: título en español, directo e informativo (max 100 chars)\n"
-        "- summary_es: 1-2 frases en español: QUE paso y POR QUE importa (max 200 chars)\n"
-        "- Tono tecnico, neutral, sin clickbait\n"
-        "- Si ya esta en español, devuelvelo igual\n\n"
-        f"Articulos:\n{json.dumps(input_list, ensure_ascii=False)}\n\n"
-        "Responde SOLO con el JSON array, sin texto adicional."
+        "Translate these tech articles to Spanish. "
+        "Return ONLY a valid JSON array, no extra text:\n"
+        '[{"i":0,"title_es":"...","summary_es":"..."}]\n\n'
+        "Rules:\n"
+        "- title_es: Spanish title, max 80 chars, no special chars\n"
+        "- summary_es: 1-2 sentences in Spanish, max 150 chars, no quotes inside\n"
+        "- Neutral technical tone\n"
+        "- If already in Spanish, keep as is\n\n"
+        f"Articles: {json.dumps(input_list, ensure_ascii=False)}\n\n"
+        "IMPORTANT: Return ONLY the JSON array. No markdown, no explanation."
     )
 
     try:
