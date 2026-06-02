@@ -213,15 +213,43 @@ async def show_list_sources(client, chat_id, message_id):
     sources = db.get_sources()
     if not sources:
         text = "📭 *No hay fuentes configuradas*\n\nAgrega una con ➕"
-    else:
-        text = f"📋 *Fuentes Configuradas ({len(sources)})*\n\n"
-        for s in sources:
-            status = "✅" if s["enabled"] else "❌"
-            text += f"{status} *{s['name']}*\n"
-            text += f"   🔗 {s['source_type']} | 🏷️ {s['category']}\n\n"
+        keyboard = [[{"text": "🏠 Menú Principal", "callback_data": "main_menu"}]]
+        await edit_message(client, chat_id, message_id, text, keyboard)
+        return
 
+    # Agrupar por tipo
+    rss = [s for s in sources if s["source_type"] == "RSS Feed"]
+    yt  = [s for s in sources if s["source_type"] == "YouTube"]
+    other = [s for s in sources if s["source_type"] not in ("RSS Feed", "YouTube")]
+
+    header = f"📋 *Fuentes Configuradas: {len(sources)} total*\n"
+    header += f"📡 RSS: {len(rss)} | 🎥 YouTube: {len(yt)} | 🔧 Otras: {len(other)}\n\n"
+
+    # Construir lista en partes para no superar 4000 chars
+    lines = []
+    for s in sources:
+        status = "✅" if s["enabled"] else "❌"
+        lines.append(f"{status} *{s['name']}* — {s['source_type']}")
+
+    # Primer mensaje: editar el actual
+    chunk = header
     keyboard = [[{"text": "🏠 Menú Principal", "callback_data": "main_menu"}]]
-    await edit_message(client, chat_id, message_id, text, keyboard)
+    first = True
+    for line in lines:
+        if len(chunk) + len(line) + 2 > 3800:
+            if first:
+                await edit_message(client, chat_id, message_id, chunk, None)
+                first = False
+            else:
+                await send_message(client, chat_id, chunk, None)
+            chunk = ""
+        chunk += line + "\n"
+
+    # Último chunk con el botón
+    if first:
+        await edit_message(client, chat_id, message_id, chunk, keyboard)
+    else:
+        await send_message(client, chat_id, chunk, keyboard)
 
 
 async def show_delete_source_menu(client, chat_id, message_id):
