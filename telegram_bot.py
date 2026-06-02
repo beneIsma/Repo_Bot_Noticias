@@ -85,6 +85,7 @@ log = logging.getLogger(__name__)
 
 # ─── Constantes ─────────────────────────────────────────────────────────────
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
+TELEGRAM_CHAT_ID   = os.environ.get("TELEGRAM_CHAT_ID", "")
 BASE_URL = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}"
 TIMEOUT = 30
 
@@ -710,6 +711,36 @@ async def show_logs(client, chat_id, message_id):
 
 
 # ════════════════════════════════════════════════════════════════════════════
+# COMANDO /clear
+# ════════════════════════════════════════════════════════════════════════════
+
+async def handle_clear_command(client, chat_id):
+    if not TELEGRAM_CHAT_ID:
+        await send_message(client, chat_id, "❌ TELEGRAM_CHAT_ID no configurado")
+        return
+    try:
+        r = await client.post(
+            f"{BASE_URL}/sendMessage",
+            json={
+                "chat_id": TELEGRAM_CHAT_ID,
+                "text": "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n✨ <b>CANAL LIMPIADO</b> ✨\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n📢 Nuevas noticias comenzarán desde aquí.",
+                "parse_mode": "HTML",
+            },
+            timeout=15,
+        )
+        if r.json().get("ok"):
+            keyboard = [[{"text": "🏠 Menú Principal", "callback_data": "main_menu"}]]
+            await send_message(client, chat_id,
+                "✅ *Canal limpiado*\n\nSe envió un separador visual a tu canal.\n\n"
+                "⚠️ Los mensajes anteriores permanecen, puedes borrarlos manualmente.", keyboard)
+        else:
+            desc = r.json().get("description", "Error desconocido")
+            await send_message(client, chat_id, f"❌ Error: {desc}")
+    except Exception as e:
+        await send_message(client, chat_id, f"❌ Error: {str(e)[:100]}")
+
+
+# ════════════════════════════════════════════════════════════════════════════
 # PROCESADOR DE MENSAJES (texto libre)
 # ════════════════════════════════════════════════════════════════════════════
 
@@ -925,6 +956,8 @@ async def main():
 
                         if text == "/start":
                             await show_main_menu(client, chat_id)
+                        elif text == "/clear":
+                            await handle_clear_command(client, chat_id)
                         elif text.startswith("/"):
                             pass  # Ignorar otros comandos
                         else:
