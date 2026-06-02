@@ -936,17 +936,26 @@ async def handle_callback(client, callback):
 
 async def run_news_loop():
     """Ejecuta visual_news_bot cada 5 minutos sin parar."""
-    import visual_news_bot
     NEWS_INTERVAL = 300  # 5 minutos
 
-    # Primera ejecución: esperar 30s a que el bot arranque
-    await asyncio.sleep(30)
+    # Primera ejecución: esperar 60s a que el bot arranque completamente
+    await asyncio.sleep(60)
 
     while True:
         try:
             log.info("▶️ Ciclo de noticias iniciando...")
-            await visual_news_bot.main()
-            log.info("✅ Ciclo de noticias completado")
+            proc = await asyncio.create_subprocess_exec(
+                "python", "visual_news_bot.py",
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
+            stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=240)
+            if proc.returncode == 0:
+                log.info("✅ Ciclo de noticias completado")
+            else:
+                log.error(f"❌ visual_news_bot error: {stderr.decode()[:200]}")
+        except asyncio.TimeoutError:
+            log.error("❌ Ciclo de noticias timeout (>4min)")
         except Exception as e:
             log.error(f"❌ Error en ciclo de noticias: {e}")
         await asyncio.sleep(NEWS_INTERVAL)
