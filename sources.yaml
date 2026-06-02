@@ -152,12 +152,31 @@ youtube_channels:
   - name: "Jon Hernandez IA"
     handle: "@la_inteligencia_artificial"
 
+  - name: "Xavier Mitjana"
+    handle: "@XavierMitjana"
+
+  - name: "Adrian Saenz"
+    handle: "@AdrianSaenz"
+
+  # Español — Ciberseguridad
+  - name: "Afsh4ck"
+    handle: "@afsh4ck"
+
+  - name: "Jasp"
+    handle: "@jasp"
+
   # Español — Programación
   - name: "midudev"
     channel_id: "UC8LeXCWOalN8SxlrPcG-PaQ"
 
   - name: "MoureDev"
     channel_id: "UCxPD7bsocoAMq8Dj18kmGyQ"
+
+  - name: "HolaMundo"
+    handle: "@HolaMundoDev"
+
+  - name: "Diego Veloper"
+    handle: "@diegoveloper"
 
   - name: "BettaTech"
     handle: "@BettaTech"
