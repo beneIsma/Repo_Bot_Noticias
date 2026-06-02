@@ -86,7 +86,7 @@ rss_feeds:
     url: "https://venturebeat.com/ai/feed/"
     tags: ["ia", "industria"]
 
-  # Español — Tech & Startups
+  # Español — Tech & IA
   - name: "El País Tecnología"
     url: "https://feeds.elpais.com/mrss-s/pages/ep/site/elpais.com/section/tecnologia/portada"
     tags: ["industria"]
@@ -97,6 +97,34 @@ rss_feeds:
 
   - name: "Hipertextual"
     url: "https://hipertextual.com/feed"
+    tags: ["ia", "industria"]
+
+  - name: "Xataka"
+    url: "https://www.xataka.com/feedburner.xml"
+    tags: ["ia", "industria"]
+
+  - name: "Xataka IA"
+    url: "https://www.xataka.com/tag/inteligencia-artificial/feedburner.xml"
+    tags: ["ia"]
+
+  - name: "Genbeta"
+    url: "https://www.genbeta.com/rss2.xml"
+    tags: ["dev", "ia"]
+
+  - name: "Nobbot IA"
+    url: "https://www.nobbot.com/feed/"
+    tags: ["ia"]
+
+  - name: "Muycomputer"
+    url: "https://www.muycomputer.com/feed/"
+    tags: ["industria"]
+
+  - name: "Economía Digital IA"
+    url: "https://www.economiadigital.es/rss/tag/inteligencia-artificial.xml"
+    tags: ["ia", "industria"]
+
+  - name: "Computerworld España"
+    url: "https://www.computerworld.es/feed/"
     tags: ["ia", "industria"]
 
 
@@ -148,6 +176,18 @@ youtube_channels:
   # Español — IA
   - name: "DotCSV"
     channel_id: "UCy5znSnfMsDwaLlROnZ7Qbg"
+
+  - name: "Nate Gentile"
+    handle: "@NateGentile7"
+
+  - name: "El Rincón de la IA"
+    handle: "@elrincondela_ia"
+
+  - name: "Nico Gamboa IA"
+    handle: "@NicoGamboaIA"
+
+  - name: "Byte Express"
+    handle: "@ByteExpress"
 
   - name: "Jon Hernandez IA"
     handle: "@la_inteligencia_artificial"
