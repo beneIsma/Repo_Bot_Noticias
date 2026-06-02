@@ -914,6 +914,28 @@ async def handle_callback(client, callback):
 
 
 # ════════════════════════════════════════════════════════════════════════════
+# BUCLE DE NOTICIAS — corre cada 5 minutos en segundo plano, para siempre
+# ════════════════════════════════════════════════════════════════════════════
+
+async def run_news_loop():
+    """Ejecuta visual_news_bot cada 5 minutos sin parar."""
+    import visual_news_bot
+    NEWS_INTERVAL = 300  # 5 minutos
+
+    # Primera ejecución: esperar 30s a que el bot arranque
+    await asyncio.sleep(30)
+
+    while True:
+        try:
+            log.info("▶️ Ciclo de noticias iniciando...")
+            await visual_news_bot.main()
+            log.info("✅ Ciclo de noticias completado")
+        except Exception as e:
+            log.error(f"❌ Error en ciclo de noticias: {e}")
+        await asyncio.sleep(NEWS_INTERVAL)
+
+
+# ════════════════════════════════════════════════════════════════════════════
 # BUCLE PRINCIPAL (Long Polling)
 # ════════════════════════════════════════════════════════════════════════════
 
@@ -937,6 +959,10 @@ async def main():
     # Sincronizar fuentes de sources.yaml a la BD
     sync_yaml_to_db()
     print("Fuentes sincronizadas desde sources.yaml")
+
+    # Arrancar bucle de noticias en segundo plano (corre cada 5 min para siempre)
+    asyncio.create_task(run_news_loop())
+    print("✅ Bucle de noticias iniciado (cada 5 minutos, 24/7)")
 
     offset = 0
 

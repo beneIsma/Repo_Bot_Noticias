@@ -2,8 +2,8 @@ name: Visual News Bot — Tiempo Real
 
 on:
   schedule:
-    # Cada 5 minutos, las 24 horas, todos los dias
-    - cron: "*/5 * * * *"
+    # Cada 15 minutos como respaldo (Render ya corre cada 5 min)
+    - cron: "*/15 * * * *"
 
   # Trigger manual desde GitHub UI
   workflow_dispatch:
