@@ -135,9 +135,26 @@ async def resolve_handle(client: httpx.AsyncClient, handle: str) -> str | None:
     return None
 
 
+def normalize_url(url: str) -> str:
+    """Elimina parámetros de tracking para comparar URLs correctamente."""
+    import urllib.parse
+    try:
+        parsed = urllib.parse.urlparse(url)
+        # Quitar parámetros utm_* y similares
+        params = urllib.parse.parse_qs(parsed.query)
+        clean_params = {k: v for k, v in params.items()
+                        if not k.startswith(("utm_", "ref", "source", "fbclid", "gclid"))}
+        clean_query = urllib.parse.urlencode(clean_params, doseq=True)
+        clean = parsed._replace(query=clean_query, fragment="")
+        return urllib.parse.urlunparse(clean).rstrip("/")
+    except Exception:
+        return url.split("?")[0].rstrip("/")
+
+
 def already_sent(url: str) -> bool:
     try:
-        res = sb.table("sent_items").select("url").eq("url", url).execute()
+        clean = normalize_url(url)
+        res = sb.table("sent_items").select("url").eq("url", clean).execute()
         return bool(res.data)
     except Exception:
         return False
@@ -145,8 +162,9 @@ def already_sent(url: str) -> bool:
 
 def mark_as_sent(url: str):
     try:
+        clean = normalize_url(url)
         sb.table("sent_items").upsert({
-            "url": url,
+            "url": clean,
             "sent_at": datetime.utcnow().isoformat(),
         }).execute()
     except Exception:
@@ -389,10 +407,38 @@ async def translate_batch(client: httpx.AsyncClient, items: list[dict]) -> list[
             if attempt < len(models) - 1:
                 await asyncio.sleep(1)
 
-    # Último recurso: marcar como pendiente de traducción
-    log.error("Todos los modelos fallaron — items sin traducir")
+    # Último recurso: traducir uno a uno con prompt mínimo
+    log.error("Todos los modelos fallaron en lote — intentando uno a uno")
     for item in items:
-        item["title_es"]   = item.get("title", "")[:80]
+        try:
+            single_prompt = (
+                f"Traduce al español este título y resumen. Responde SOLO JSON:\n"
+                f'{{"title_es":"TITULO","summary_es":"RESUMEN"}}\n\n'
+                f'Título: {item.get("title","")}\n'
+                f'Resumen: {clean_html(item.get("summary",""))[:200]}'
+            )
+            r = await client.post(
+                "https://api.groq.com/openai/v1/chat/completions",
+                headers={"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"},
+                json={
+                    "model": "llama-3.1-8b-instant",
+                    "messages": [{"role": "user", "content": single_prompt}],
+                    "max_tokens": 300,
+                    "temperature": 0.1,
+                },
+                timeout=15,
+            )
+            raw = r.json()["choices"][0]["message"]["content"].strip()
+            m = re.search(r'\{.*\}', raw, re.DOTALL)
+            if m:
+                t = json.loads(m.group())
+                item["title_es"]   = t.get("title_es", "")[:80] or item.get("title", "")[:80]
+                item["summary_es"] = t.get("summary_es", "")[:150] or clean_html(item.get("summary",""))[:150]
+                continue
+        except Exception:
+            pass
+        # Si todo falla, poner indicador de que está en otro idioma
+        item["title_es"]   = f"[EN] {item.get('title','')[:76]}"
         item["summary_es"] = clean_html(item.get("summary", ""))[:150]
     return items
 
