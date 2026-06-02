@@ -316,9 +316,12 @@ def escape_html(text: str) -> str:
 # ════════════════════════════════════════════════════════════════════════════
 
 async def translate_batch(client: httpx.AsyncClient, items: list[dict]) -> list[dict]:
-    """Traduce items al español usando Groq (Llama 3) — gratuito."""
+    """Traduce items al español — SIEMPRE en español, con 3 reintentos."""
     if not GROQ_API_KEY:
-        log.warning("Sin GROQ_API_KEY, omitiendo traducción")
+        log.warning("Sin GROQ_API_KEY")
+        for item in items:
+            item["title_es"]   = item.get("title", "")
+            item["summary_es"] = clean_html(item.get("summary", ""))[:150]
         return items
 
     input_list = [
@@ -331,56 +334,66 @@ async def translate_batch(client: httpx.AsyncClient, items: list[dict]) -> list[
     ]
 
     prompt = (
-        "Translate these tech articles to Spanish. "
-        "Return ONLY a valid JSON array, no extra text:\n"
-        '[{"i":0,"title_es":"...","summary_es":"..."}]\n\n'
-        "Rules:\n"
-        "- title_es: Spanish title, max 80 chars, no special chars\n"
-        "- summary_es: 1-2 sentences in Spanish, max 150 chars, no quotes inside\n"
-        "- Neutral technical tone\n"
-        "- If already in Spanish, keep as is\n\n"
-        f"Articles: {json.dumps(input_list, ensure_ascii=False)}\n\n"
-        "IMPORTANT: Return ONLY the JSON array. No markdown, no explanation."
+        "Translate ALL articles to SPANISH. Return ONLY a JSON array:\n"
+        '[{"i":0,"title_es":"titulo en español","summary_es":"resumen en español"}]\n\n'
+        "- title_es: maximo 80 caracteres, SOLO en español\n"
+        "- summary_es: 1-2 frases, SOLO en español, maximo 150 caracteres\n"
+        "- NUNCA dejes texto en ingles\n"
+        "- Si ya esta en español, dejalo igual\n"
+        f"Articulos: {json.dumps(input_list, ensure_ascii=False)}\n\n"
+        "DEVUELVE SOLO EL JSON. NADA MAS."
     )
 
-    try:
-        r = await client.post(
-            "https://api.groq.com/openai/v1/chat/completions",
-            headers={
-                "Authorization": f"Bearer {GROQ_API_KEY}",
-                "Content-Type": "application/json",
-            },
-            json={
-                "model": GROQ_MODEL_FAST,
-                "messages": [{"role": "user", "content": prompt}],
-                "max_tokens": 2048,
-                "temperature": 0.3,
-            },
-            timeout=30,
-        )
-        r.raise_for_status()
-        raw = r.json()["choices"][0]["message"]["content"].strip()
+    models = ["mixtral-8x7b-32768", "llama-3.1-8b-instant", "gemma2-9b-it"]
 
-        match = re.search(r"\[.*\]", raw, re.DOTALL)
-        if not match:
-            raise ValueError("Sin JSON en respuesta")
+    for attempt, model in enumerate(models):
+        try:
+            r = await client.post(
+                "https://api.groq.com/openai/v1/chat/completions",
+                headers={"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"},
+                json={
+                    "model": model,
+                    "messages": [{"role": "user", "content": prompt}],
+                    "max_tokens": 2048,
+                    "temperature": 0.1,
+                },
+                timeout=30,
+            )
+            r.raise_for_status()
+            raw = r.json()["choices"][0]["message"]["content"].strip()
 
-        translations = json.loads(match.group())
-        trans_map = {t["i"]: t for t in translations}
+            match = re.search(r"\[.*\]", raw, re.DOTALL)
+            if not match:
+                raise ValueError("Sin JSON")
 
-        for i, item in enumerate(items):
-            t = trans_map.get(i, {})
-            item["title_es"]   = t.get("title_es", item.get("title", ""))
-            item["summary_es"] = t.get("summary_es", "")
+            translations = json.loads(match.group())
+            trans_map = {t["i"]: t for t in translations}
 
-        log.info(f"Groq: {len(items)} items traducidos")
+            ok = True
+            for i, item in enumerate(items):
+                t = trans_map.get(i, {})
+                te = (t.get("title_es") or "").strip()
+                se = (t.get("summary_es") or "").strip()
+                if not te or not se:
+                    ok = False
+                    break
+                item["title_es"]   = te[:80]
+                item["summary_es"] = se[:150]
 
-    except Exception as e:
-        log.warning(f"Error traducción Groq: {e} — usando original")
-        for item in items:
-            item["title_es"]   = item.get("title", "")
-            item["summary_es"] = clean_html(item.get("summary", ""))[:200]
+            if ok:
+                log.info(f"Traducidos {len(items)} items con {model}")
+                return items
 
+        except Exception as e:
+            log.warning(f"Modelo {model} falló: {str(e)[:80]}")
+            if attempt < len(models) - 1:
+                await asyncio.sleep(1)
+
+    # Último recurso: marcar como pendiente de traducción
+    log.error("Todos los modelos fallaron — items sin traducir")
+    for item in items:
+        item["title_es"]   = item.get("title", "")[:80]
+        item["summary_es"] = clean_html(item.get("summary", ""))[:150]
     return items
 
 
