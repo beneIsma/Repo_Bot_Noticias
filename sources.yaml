@@ -215,3 +215,6 @@ youtube_channels:
 
   - name: "Veritasium"
     channel_id: "UCHnyfMqiRRG1u-2MsSQLbXA"
+
+  - name: "EDteam"
+    handle: "@EDteam"
