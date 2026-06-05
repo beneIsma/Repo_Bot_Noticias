@@ -170,14 +170,23 @@ async def answer_callback(client: httpx.AsyncClient, callback_id: str, text: str
 
 
 async def get_updates(client: httpx.AsyncClient, offset: int = 0):
-    """Obtiene actualizaciones del bot."""
+    """Obtiene actualizaciones del bot (short polling, sin conexión persistente)."""
     try:
-        r = await client.get(
+        r = await client.post(
             f"{BASE_URL}/getUpdates",
-            params={"offset": offset, "timeout": 20, "allowed_updates": ["message", "callback_query"]},
-            timeout=25,
+            json={"offset": offset, "timeout": 0, "allowed_updates": ["message", "callback_query"]},
+            timeout=10,
         )
-        return r.json().get("result", [])
+        data = r.json()
+        if not data.get("ok"):
+            code = data.get("error_code")
+            if code == 409:
+                log.warning("409: otra instancia activa. Esperando 35s...")
+                await asyncio.sleep(35)
+            else:
+                log.error(f"getUpdates error: {data}")
+            return []
+        return data.get("result", [])
     except Exception as e:
         log.error(f"Error obteniendo updates: {e}")
         return []
@@ -945,7 +954,7 @@ async def run_news_loop():
         try:
             log.info("▶️ Ciclo de noticias iniciando...")
             proc = await asyncio.create_subprocess_exec(
-                "python", "visual_news_bot.py",
+                "python", "bot_v2.py",
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
             )
@@ -953,7 +962,7 @@ async def run_news_loop():
             if proc.returncode == 0:
                 log.info("✅ Ciclo de noticias completado")
             else:
-                log.error(f"❌ visual_news_bot error: {stderr.decode()[:200]}")
+                log.error(f"❌ bot_v2 error: {stderr.decode()[:200]}")
         except asyncio.TimeoutError:
             log.error("❌ Ciclo de noticias timeout (>4min)")
         except Exception as e:
@@ -1020,6 +1029,8 @@ async def main():
             except Exception as e:
                 log.error(f"Error en bucle principal: {e}")
                 await asyncio.sleep(3)
+
+            await asyncio.sleep(1)
 
 
 if __name__ == "__main__":
