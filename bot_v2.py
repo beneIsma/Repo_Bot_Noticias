@@ -34,11 +34,11 @@ logging.basicConfig(
 log = logging.getLogger(__name__)
 
 # ─── Constantes ─────────────────────────────────────────────────────────────
-ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
+GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "")
 
-CLAUDE_MODEL = "claude-haiku-4-5-20251001"
+GROQ_MODEL = "llama-3.3-70b-versatile"
 MAX_ITEMS_PER_SOURCE = 10
 MAX_INPUT_CHARS = 80_000
 REQUEST_TIMEOUT = 15
@@ -193,31 +193,32 @@ def build_user_message(articles: list[dict]) -> str:
         text = text[:MAX_INPUT_CHARS] + "\n\n[...contenido truncado]"
     return text
 
-async def call_claude(user_message: str) -> str:
-    """Genera el digest usando Claude API (Anthropic)."""
+async def call_groq(user_message: str) -> str:
+    """Genera el digest usando Groq API (gratuito)."""
     async with httpx.AsyncClient() as client:
         r = await client.post(
-            "https://api.anthropic.com/v1/messages",
+            "https://api.groq.com/openai/v1/chat/completions",
             headers={
-                "x-api-key": ANTHROPIC_API_KEY,
-                "anthropic-version": "2023-06-01",
-                "content-type": "application/json",
+                "Authorization": f"Bearer {GROQ_API_KEY}",
+                "Content-Type": "application/json",
             },
             json={
-                "model": CLAUDE_MODEL,
+                "model": GROQ_MODEL,
                 "max_tokens": 2048,
-                "system": SYSTEM_PROMPT,
-                "messages": [{"role": "user", "content": user_message}],
+                "messages": [
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": user_message},
+                ],
                 "temperature": 0.3,
             },
             timeout=60,
         )
         r.raise_for_status()
         data = r.json()
-        digest = data["content"][0]["text"]
-        input_tokens = data.get("usage", {}).get("input_tokens", 0)
-        output_tokens = data.get("usage", {}).get("output_tokens", 0)
-        log.info(f"Claude: {input_tokens} entrada, {output_tokens} salida tokens")
+        digest = data["choices"][0]["message"]["content"]
+        input_tokens = data.get("usage", {}).get("prompt_tokens", 0)
+        output_tokens = data.get("usage", {}).get("completion_tokens", 0)
+        log.info(f"Groq: {input_tokens} entrada, {output_tokens} salida tokens")
         return digest
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -329,7 +330,7 @@ async def main() -> None:
     """Flujo principal del bot."""
     log.info("━━━ Tech Digest Bot v2.2 (Imágenes Reales) iniciando ━━━")
 
-    if not all([ANTHROPIC_API_KEY, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID]):
+    if not all([GROQ_API_KEY, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID]):
         log.error("Faltan variables de entorno")
         return
 
@@ -343,7 +344,7 @@ async def main() -> None:
 
     log.info("Enviando artículos a Claude para procesamiento...")
     user_message = build_user_message(articles)
-    digest = await call_claude(user_message)
+    digest = await call_groq(user_message)
     log.info(f"Digest generado: {len(digest)} caracteres")
 
     log.info("Enviando digest a Telegram con imágenes reales...")
