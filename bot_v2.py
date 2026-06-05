@@ -65,7 +65,7 @@ CRITERIOS DE RECHAZO:
 FORMATO DE SALIDA (TEXTO VISUAL PURO - TODAS LAS NOTICIAS IGUAL):
 ═════════════════════════════════════════════════════════════════════════════
 
-🔔 TECH DIGEST — {DÍA}, {FECHA}
+🔔 NOTICIAS — {DÍA}, {FECHA}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 #1 📰 TITULO DE LA NOTICIA (máx 10 palabras, atractivo)
