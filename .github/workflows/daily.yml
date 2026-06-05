@@ -7,7 +7,7 @@ on:
   #   07:00 Madrid (verano UTC+2)   → "0 5 * * *"
   #   08:00 UTC+1 (solo laborales)   → "0 7 * * 1-5"
   schedule:
-    - cron: "0 * * * *"   # Cada hora (00:00, 01:00, 02:00, etc. UTC)
+    - cron: "0 6-21 * * *"  # 8:00-23:00 Madrid (verano UTC+2) → 6:00-21:00 UTC
 
   # ── Ejecución manual desde la UI de GitHub ───────────────────
   workflow_dispatch:
