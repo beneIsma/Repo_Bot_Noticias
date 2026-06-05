@@ -17,6 +17,19 @@ from db_manager import DatabaseManager
 from config import AI_MODELS, CATEGORIES, DEFAULT_SYSTEM_PROMPT
 
 
+def load_env_file():
+    env_path = ".env"
+    if os.path.exists(env_path):
+        with open(env_path, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith("#") and "=" in line:
+                    key, value = line.split("=", 1)
+                    os.environ.setdefault(key.strip(), value.strip())
+
+load_env_file()
+
+
 # ─── Health check HTTP (mantiene vivo el servicio en Render) ─────────────────
 VERSION = "v3.1"
 
@@ -986,6 +999,11 @@ async def main():
     print("Bot activo. Escribe /start en Telegram")
     print("(chat PRIVADO con tu bot, no en el canal)")
     print("=" * 40)
+
+    # Limpiar cualquier conexión previa en Telegram
+    async with httpx.AsyncClient() as _c:
+        r = await _c.post(f"{BASE_URL}/deleteWebhook", json={"drop_pending_updates": False}, timeout=10)
+        print(f"Telegram reset: {r.json().get('description', 'OK')}")
 
     # Arrancar health server en segundo plano (para Koyeb)
     threading.Thread(target=start_health_server, daemon=True).start()
