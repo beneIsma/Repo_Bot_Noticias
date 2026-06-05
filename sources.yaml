@@ -6,47 +6,6 @@
 # ── RSS Feeds ────────────────────────────────────────────────
 rss_feeds:
 
-  # IA & Machine Learning
-  - name: "TechCrunch AI"
-    url: "https://techcrunch.com/category/artificial-intelligence/feed/"
-    tags: ["ia"]
-
-  - name: "MIT Technology Review"
-    url: "https://www.technologyreview.com/feed/"
-    tags: ["ia", "tech"]
-
-  - name: "The Verge"
-    url: "https://www.theverge.com/rss/index.xml"
-    tags: ["industria"]
-
-  - name: "Wired"
-    url: "https://www.wired.com/feed/rss"
-    tags: ["industria"]
-
-  - name: "Hugging Face Blog"
-    url: "https://huggingface.co/blog/feed.xml"
-    tags: ["ia"]
-
-  - name: "OpenAI Blog"
-    url: "https://openai.com/news/rss.xml"
-    tags: ["ia"]
-
-  - name: "Google DeepMind Blog"
-    url: "https://deepmind.google/blog/rss.xml"
-    tags: ["ia"]
-
-  - name: "Meta AI Blog"
-    url: "https://ai.meta.com/blog/feed/"
-    tags: ["ia"]
-
-  - name: "ArXiv cs.AI"
-    url: "https://rss.arxiv.org/rss/cs.AI"
-    tags: ["ia"]
-
-  - name: "ArXiv cs.LG (Machine Learning)"
-    url: "https://rss.arxiv.org/rss/cs.LG"
-    tags: ["ia"]
-
   # Desarrollo & Open Source
   - name: "GitHub Blog"
     url: "https://github.blog/feed/"
@@ -68,88 +27,54 @@ rss_feeds:
     url: "https://www.freecodecamp.org/news/rss/"
     tags: ["dev"]
 
-  # Robótica & Hardware
-  - name: "IEEE Spectrum Robotics"
-    url: "https://spectrum.ieee.org/feeds/topic/robotics.rss"
-    tags: ["robotica"]
-
-  - name: "IEEE Spectrum AI"
-    url: "https://spectrum.ieee.org/feeds/topic/artificial-intelligence.rss"
-    tags: ["ia", "robotica"]
-
-  # Tech & Industria
-  - name: "Ars Technica"
-    url: "https://feeds.arstechnica.com/arstechnica/index"
-    tags: ["industria"]
-
-  - name: "VentureBeat AI"
-    url: "https://venturebeat.com/ai/feed/"
-    tags: ["ia", "industria"]
-
   # Español — Tech & IA
   - name: "El País Tecnología"
     url: "https://feeds.elpais.com/mrss-s/pages/ep/site/elpais.com/section/tecnologia/portada"
-    tags: ["industria"]
+    tags: ["tech"]
 
   - name: "Computer Hoy"
     url: "https://computerhoy.20minutos.es/rss/"
-    tags: ["dev", "industria"]
+    tags: ["dev", "tech"]
 
   - name: "Hipertextual"
     url: "https://hipertextual.com/feed"
-    tags: ["ia", "industria"]
+    tags: ["tech"]
 
   - name: "Xataka"
     url: "https://www.xataka.com/feedburner.xml"
-    tags: ["ia", "industria"]
+    tags: ["tech"]
 
   - name: "Xataka IA"
     url: "https://www.xataka.com/tag/inteligencia-artificial/feedburner.xml"
-    tags: ["ia"]
+    tags: ["tech"]
 
   - name: "Genbeta"
     url: "https://www.genbeta.com/rss2.xml"
-    tags: ["dev", "ia"]
+    tags: ["dev", "tech"]
 
   - name: "Nobbot IA"
     url: "https://www.nobbot.com/feed/"
-    tags: ["ia"]
+    tags: ["tech"]
 
   - name: "Muycomputer"
     url: "https://www.muycomputer.com/feed/"
-    tags: ["industria"]
+    tags: ["tech"]
 
   - name: "Economía Digital IA"
     url: "https://www.economiadigital.es/rss/tag/inteligencia-artificial.xml"
-    tags: ["ia", "industria"]
+    tags: ["tech"]
 
   - name: "Computerworld España"
     url: "https://www.computerworld.es/feed/"
-    tags: ["ia", "industria"]
+    tags: ["tech"]
 
+  - name: "The Verge"
+    url: "https://www.theverge.com/rss/index.xml"
+    tags: ["tech"]
 
-# ── Hacker News ───────────────────────────────────────────────
-hackernews:
-  enabled: true
-  top_n: 20
-
-
-# ── Dev.to ───────────────────────────────────────────────────
-devto:
-  tags:
-    - "ai"
-    - "machinelearning"
-    - "python"
-    - "webdev"
-    - "opensource"
-  per_page: 8
-
-
-# ── Reddit ───────────────────────────────────────────────────
-reddit_subreddits:
-  - name: "MachineLearning"
-  - name: "LocalLLaMA"
-  - name: "programming"
+  - name: "Wired"
+    url: "https://www.wired.com/feed/rss"
+    tags: ["tech"]
 
 
 # ── Canales de YouTube ───────────────────────────────────────
@@ -276,13 +201,3 @@ youtube_channels:
 
   - name: "Eureka Tutoriales"
     handle: "@EurekaTutoriales"
-
-  # Matemáticas & Ciencia
-  - name: "3Blue1Brown"
-    channel_id: "UCYO_jab_esuFRV4b17AJtAg"
-
-  - name: "Veritasium"
-    channel_id: "UCHnyfMqiRRG1u-2MsSQLbXA"
-
-  - name: "EDteam"
-    handle: "@EDteam"
