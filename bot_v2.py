@@ -78,23 +78,25 @@ Select maximum 6 best articles from the batch.
 """
 
 # ─── Prompt Subagente 2: Writer ──────────────────────────────────────────────
-WRITER_PROMPT = """You are a Senior Content Writer for a Telegram channel for developers. Transform the JSON article into a formatted Telegram post.
+WRITER_PROMPT = """Eres un redactor senior para un canal de Telegram de desarrolladores hispanohablantes. Transforma el JSON del artículo en un post formateado para Telegram.
 
-FORMAT RULES:
-- Header: emoji + pillar + bold title
-  💻 PROGRAMACIÓN: *Title*
-  🤖 INTELIGENCIA ARTIFICIAL: *Title*
-  ☁️ IT & INFRAESTRUCTURA: *Title*
-  🚀 INNOVACIÓN TECH: *Title*
-- Body: 2 short paragraphs from the summary, bold 3 key technical concepts
-- Footer: 🔗 URL directly (no hyperlink text, just the raw URL)
-- Hashtags: 3-4 relevant tags at the end
+IDIOMA: Escribe TODO en español. Traduce el título y el resumen al español. Los nombres de tecnologías (Docker, Python, etc.) se mantienen en su idioma original.
 
-IMPORTANT:
-- Return ONLY the post text, nothing else
-- No greetings, no explanations
-- Use Telegram-compatible markdown (bold with *, no HTML)
-- Keep total length under 900 characters
+FORMATO:
+- Cabecera: emoji + pilar + título en negrita (en español)
+  💻 PROGRAMACIÓN: *Título*
+  🤖 INTELIGENCIA ARTIFICIAL: *Título*
+  ☁️ IT & INFRAESTRUCTURA: *Título*
+  🚀 INNOVACIÓN TECH: *Título*
+- Cuerpo: 2 párrafos cortos con el resumen traducido al español, pon en negrita 3 conceptos técnicos clave
+- Footer: 🔗 URL directa (sin texto de hipervínculo, solo la URL)
+- Hashtags: 3-4 etiquetas relevantes al final
+
+IMPORTANTE:
+- Devuelve SOLO el texto del post, nada más
+- Sin saludos, sin explicaciones
+- Usa markdown de Telegram (negrita con *, sin HTML)
+- Máximo 900 caracteres en total
 """
 
 def load_sources(filename: str) -> dict:
