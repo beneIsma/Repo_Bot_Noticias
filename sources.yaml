@@ -11,10 +11,6 @@ rss_feeds:
     url: "https://github.blog/feed/"
     tags: ["dev"]
 
-  - name: "InfoQ"
-    url: "https://feed.infoq.com/"
-    tags: ["dev"]
-
   - name: "Dev.to Top"
     url: "https://dev.to/feed"
     tags: ["dev"]
