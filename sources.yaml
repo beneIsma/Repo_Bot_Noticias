@@ -239,6 +239,15 @@ youtube_channels:
   - name: "Conciencia Artificial"
     handle: "@Conciencia_Artificial"
 
+  - name: "Domini Code"
+    handle: "@DominiCode"
+
+  - name: "Angularidades"
+    handle: "@angularidades"
+
+  - name: "DotTech-ES"
+    handle: "@DotTechES"
+
   # Programación & Dev (Global)
   - name: "Fireship"
     channel_id: "UCsBjURrPoezykLs9EqgamOA"
@@ -248,6 +257,25 @@ youtube_channels:
 
   - name: "ThePrimeagen"
     channel_id: "UC8ENHE5xdFSwx71WHd4J1SQ"
+
+  # Programación & Dev (Español)
+  - name: "Fazt Code"
+    handle: "@FaztCode"
+
+  - name: "Fazt Tech"
+    handle: "@FaztTech"
+
+  - name: "Rodrigo Olivares"
+    handle: "@rodrigolivaresr"
+
+  - name: "Juan Gabriel Gomila"
+    handle: "@JuanGabrielGomila"
+
+  - name: "WebpositerPodcast"
+    handle: "@WebpositerPodcast"
+
+  - name: "Eureka Tutoriales"
+    handle: "@EurekaTutoriales"
 
   # Matemáticas & Ciencia
   - name: "3Blue1Brown"

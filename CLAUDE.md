@@ -4,44 +4,62 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Tech Digest Bot** — Un agregador personal de noticias que recopila artículos de tecnología, IA y robótica de múltiples fuentes, los filtra usando Claude API, y entrega un resumen diario curado vía Telegram.
+**Tech Digest Bot v2.5** — Un agregador inteligente de noticias que recopila artículos de tecnología, IA y robótica de 40+ fuentes, los filtra usando Claude API + subagentes especializados, y entrega resúmenes curados vía Telegram cada hora.
 
-Propósito: Evitar información innecesaria entregando únicamente noticias de impacto real, técnicamente relevantes, directamente en Telegram todos los días.
+Propósito: Entrega de noticias técnicas de impacto real, sin ruido, directamente en Telegram. Control editorial total del usuario mediante subagentes.
 
 ## Architecture
 
 ### Data Flow
 
 ```
-sources.yaml
+AUTOMATIZADO (Cada hora vía GitHub Actions):
+
+sources.yaml (40+ fuentes)
     ↓
-[collect_all_news] — Fetch desde múltiples APIs/RSS en paralelo
-    ├─ RSS feeds (MIT Review, Wired, ArXiv, etc.)
+[bot_v2.py → collect_all_news()]
+    ├─ RSS feeds (Xataka, MIT Review, Wired, ArXiv, etc.)
     ├─ Hacker News (API Firebase)
     ├─ Dev.to (API REST)
-    ├─ Reddit (RSS público)
-    └─ YouTube (RSS por channel_id)
+    ├─ Reddit (RSS)
+    └─ YouTube (40+ canales: IA, Dev, Español)
     ↓
-[Artículos en bruto] — lista de dicts {source, title, url, summary}
+[Artículos crudos JSON] — {source, title, url, summary}
     ↓
-[build_user_message] — Formatea en texto para Claude
+[Claude API] — SYSTEM_PROMPT → digest MarkdownV2
     ↓
-[call_claude] — Claude API filtra, selecciona, estructura en MarkdownV2
+[send_telegram] — Envía chunk si >4096 chars
     ↓
-[send_telegram] — Envía el digest (con fallback a texto plano si falla MarkdownV2)
+Telegram chat (cada hora)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+OPCIONAL — CURACIÓN MANUAL (Invocas tú desde Claude Code):
+
+[Artículos crudos del día]
     ↓
-Telegram chat del usuario
+[TÚ] → "Curador estos artículos"
+    ↓
+[content-curator-telegram] — Filtra duplicados, marketing, aprueba editorialamente
+    ↓
+[Artículos aprobados] — {source, title, category, urgency}
+    ↓
+[telegram-content-writer] — Formatea MarkdownV2 atractivo con emojis
+    ↓
+[Post Telegram formateado] — Listo para copiar-pegar
+    ↓
+TÚ copias al chat manualmente
 ```
 
 ### Core Modules
 
-- **bot.py** — Script principal monolítico que orquesta todo el flujo
+- **bot_v2.py** — Script principal (orquesta recolección y envío)
   - `load_sources()` — Lee sources.yaml
-  - `fetch_*()` — Funciones para cada tipo de API (RSS, HN, Dev.to, Reddit, YouTube)
-  - `collect_all_news()` — Orquesta fetches en paralelo con `asyncio.gather()`
-  - `build_user_message()` — Formatea artículos como texto para Claude
-  - `call_claude()` — HTTP POST a Anthropic API
-  - `send_telegram()` — HTTP POST a Telegram Bot API (chunked si >4096 chars)
+  - `fetch_rss()`, `fetch_hackernews()`, `fetch_devto()`, `fetch_reddit()`, `fetch_youtube_channels()` — APIs en paralelo
+  - `collect_all_news()` — Orquesta todo con `asyncio.gather()`
+  - `build_user_message()` — Formatea artículos para Claude
+  - `call_claude()` — HTTP POST a Anthropic Claude API (no Groq)
+  - `send_telegram()` — HTTP POST a Telegram (chunked si >4096 chars, fallback a HTML)
 
 - **sources.yaml** — Configuración declarativa de fuentes (sin tocar código)
   - RSS feeds: URL y nombre

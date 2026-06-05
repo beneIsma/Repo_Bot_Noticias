@@ -13,6 +13,19 @@ import httpx
 import feedparser
 import yaml
 
+# Cargar variables desde .env si existen
+def load_env_file():
+    env_path = ".env"
+    if os.path.exists(env_path):
+        with open(env_path, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith("#") and "=" in line:
+                    key, value = line.split("=", 1)
+                    os.environ.setdefault(key.strip(), value.strip())
+
+load_env_file()
+
 # ─── Logging ────────────────────────────────────────────────────────────────
 logging.basicConfig(
     level=logging.INFO,
@@ -22,11 +35,11 @@ logging.basicConfig(
 log = logging.getLogger(__name__)
 
 # ─── Constantes ─────────────────────────────────────────────────────────────
-GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
+ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "")
 
-GROQ_MODEL = "llama-3.3-70b-versatile"
+CLAUDE_MODEL = "claude-haiku-4-5-20251001"
 MAX_ITEMS_PER_SOURCE = 10
 MAX_INPUT_CHARS = 80_000
 REQUEST_TIMEOUT = 15
@@ -297,6 +310,10 @@ async def fetch_youtube_channels(
     """Obtiene últimos vídeos de canales de YouTube via RSS."""
     items = []
     for ch in channels:
+        # Solo procesar canales con channel_id configurado
+        if "channel_id" not in ch:
+            log.debug(f"YouTube [{ch['name']}]: Sin channel_id, saltando")
+            continue
         url = f"https://www.youtube.com/feeds/videos.xml?channel_id={ch['channel_id']}"
         result = await fetch_rss(client, f"YouTube: {ch['name']}", url)
         items.extend(result[:3])
@@ -374,30 +391,32 @@ def build_user_message(articles: list[dict]) -> str:
 
 
 async def call_claude(user_message: str) -> str:
-    """Genera el digest usando Groq (Llama 3.3 70B) — gratuito."""
+    """Genera el digest usando Claude API (Anthropic)."""
     async with httpx.AsyncClient() as client:
         r = await client.post(
-            "https://api.groq.com/openai/v1/chat/completions",
+            "https://api.anthropic.com/v1/messages",
             headers={
-                "Authorization": f"Bearer {GROQ_API_KEY}",
-                "Content-Type": "application/json",
+                "x-api-key": ANTHROPIC_API_KEY,
+                "anthropic-version": "2023-06-01",
+                "content-type": "application/json",
             },
             json={
-                "model": GROQ_MODEL,
-                "messages": [
-                    {"role": "system", "content": SYSTEM_PROMPT},
-                    {"role": "user",   "content": user_message},
-                ],
+                "model": CLAUDE_MODEL,
                 "max_tokens": 2048,
+                "system": SYSTEM_PROMPT,
+                "messages": [
+                    {"role": "user", "content": user_message},
+                ],
                 "temperature": 0.3,
             },
             timeout=60,
         )
         r.raise_for_status()
         data = r.json()
-        digest = data["choices"][0]["message"]["content"]
-        total_tokens = data.get("usage", {}).get("total_tokens", 0)
-        log.info(f"Groq: {total_tokens} tokens usados (GRATIS)")
+        digest = data["content"][0]["text"]
+        input_tokens = data.get("usage", {}).get("input_tokens", 0)
+        output_tokens = data.get("usage", {}).get("output_tokens", 0)
+        log.info(f"Claude: {input_tokens} entrada, {output_tokens} salida tokens")
         return digest
 
 
@@ -447,7 +466,7 @@ async def main() -> None:
     log.info("━━━ Tech Digest Bot v2.0 iniciando ━━━")
 
     if not all([ANTHROPIC_API_KEY, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID]):
-        log.error("Faltan variables de entorno (ANTHROPIC_API_KEY, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID)")
+        log.error("Faltan variables de entorno: ANTHROPIC_API_KEY, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID")
         return
 
     # 1. Cargar fuentes

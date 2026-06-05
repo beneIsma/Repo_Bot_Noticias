@@ -263,3 +263,24 @@ class DatabaseManager:
         except Exception as e:
             log.error(f"Error al limpiar noticias: {e}")
             return 0
+
+    def clear_all_news(self) -> int:
+        """Elimina TODAS las noticias de la base de datos. ⚠️ DESTRUCTIVO."""
+        try:
+            res = self.client.table("news").select("id").execute()
+            total = len(res.data or [])
+            if total == 0:
+                self.add_log("INFO", "No hay noticias para eliminar")
+                return 0
+
+            # Eliminar por lotes para evitar limites
+            for chunk in [res.data[i:i+1000] for i in range(0, len(res.data), 1000)]:
+                ids = [row["id"] for row in chunk]
+                for news_id in ids:
+                    self.client.table("news").delete().eq("id", news_id).execute()
+
+            self.add_log("SUCCESS", f"Eliminadas {total} noticias (LIMPIEZA COMPLETA)")
+            return total
+        except Exception as e:
+            self.add_log("ERROR", f"Error eliminando noticias: {str(e)[:100]}")
+            return 0
