@@ -1,6 +1,6 @@
 """
-Tech Digest Bot v3.0 — Pipeline con Subagentes
-Flujo: sources.yaml → Fetch → Curator (Claude) → Writer (Claude) → Telegram
+Tech Digest Bot v3.0 — Pipeline con Subagentes (Groq, gratuito)
+Flujo: sources.yaml → Fetch → Curator (Groq) → Writer (Groq) → Telegram
 """
 
 import os
@@ -33,13 +33,13 @@ logging.basicConfig(
 )
 log = logging.getLogger(__name__)
 
-ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
+GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "")
 
-CLAUDE_MODEL = "claude-haiku-4-5-20251001"
+GROQ_MODEL = "llama-3.3-70b-versatile"
 MAX_ITEMS_PER_SOURCE = 10
-MAX_INPUT_CHARS = 60_000
+MAX_INPUT_CHARS = 18_000
 REQUEST_TIMEOUT = 15
 SOURCES_FILE = "sources.yaml"
 
@@ -161,30 +161,38 @@ async def collect_all_news(sources):
 # LLAMADAS A CLAUDE
 # ════════════════════════════════════════════════════════════════════════════
 
-async def call_claude(system_prompt: str, user_message: str) -> str:
-    async with httpx.AsyncClient() as client:
-        r = await client.post(
-            "https://api.anthropic.com/v1/messages",
-            headers={
-                "x-api-key": ANTHROPIC_API_KEY,
-                "anthropic-version": "2023-06-01",
-                "content-type": "application/json",
-            },
-            json={
-                "model": CLAUDE_MODEL,
-                "max_tokens": 4096,
-                "system": system_prompt,
-                "messages": [{"role": "user", "content": user_message}],
-                "temperature": 0.3,
-            },
-            timeout=60,
-        )
-        r.raise_for_status()
-        data = r.json()
-        tokens_in = data.get("usage", {}).get("input_tokens", 0)
-        tokens_out = data.get("usage", {}).get("output_tokens", 0)
-        log.info(f"Claude: {tokens_in} entrada, {tokens_out} salida tokens")
-        return data["content"][0]["text"]
+async def call_groq(system_prompt: str, user_message: str) -> str:
+    for attempt in range(5):
+        async with httpx.AsyncClient() as client:
+            r = await client.post(
+                "https://api.groq.com/openai/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {GROQ_API_KEY}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": GROQ_MODEL,
+                    "max_tokens": 4096,
+                    "messages": [
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_message},
+                    ],
+                    "temperature": 0.3,
+                },
+                timeout=60,
+            )
+            if r.status_code == 429:
+                wait = int(r.headers.get("retry-after", 10))
+                log.warning(f"Groq rate limit, esperando {wait}s...")
+                await asyncio.sleep(wait)
+                continue
+            r.raise_for_status()
+            data = r.json()
+            tokens_in = data.get("usage", {}).get("prompt_tokens", 0)
+            tokens_out = data.get("usage", {}).get("completion_tokens", 0)
+            log.info(f"Groq: {tokens_in} entrada, {tokens_out} salida tokens")
+            return data["choices"][0]["message"]["content"]
+    raise RuntimeError("Groq: demasiados reintentos por rate limit")
 
 # ════════════════════════════════════════════════════════════════════════════
 # SUBAGENTE 1: CURADOR
@@ -207,7 +215,7 @@ async def curate_articles(articles: list) -> list:
         user_msg = user_msg[:MAX_INPUT_CHARS]
 
     log.info("Subagente 1: Curando artículos...")
-    raw = await call_claude(CURATOR_PROMPT, user_msg)
+    raw = await call_groq(CURATOR_PROMPT, user_msg)
 
     # Extraer JSON del response
     try:
@@ -233,7 +241,7 @@ async def write_post(article: dict) -> str:
     """Formatea un artículo aprobado como post de Telegram."""
     user_msg = json.dumps(article["data"], ensure_ascii=False, indent=2)
     log.info(f"Subagente 2: Formateando '{article['data']['title'][:50]}'...")
-    post = await call_claude(WRITER_PROMPT, user_msg)
+    post = await call_groq(WRITER_PROMPT, user_msg)
     return post.strip()
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -285,8 +293,8 @@ async def send_post(client, article: dict, post_text: str, all_articles: list):
 async def main():
     log.info("━━━ Tech Digest Bot v3.0 (Pipeline Subagentes) iniciando ━━━")
 
-    if not all([ANTHROPIC_API_KEY, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID]):
-        log.error("Faltan variables: ANTHROPIC_API_KEY, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID")
+    if not all([GROQ_API_KEY, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID]):
+        log.error("Faltan variables: GROQ_API_KEY, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID")
         return
 
     # 1. Recopilar noticias
