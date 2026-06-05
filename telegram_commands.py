@@ -77,6 +77,8 @@ class TelegramCommandHandler:
 
             # Intentar eliminar los últimos 50 mensajes del bot (backwards)
             deleted_count = 0
+            error_count = 0
+
             for msg_id in range(message_id - 1, max(message_id - 51, 0), -1):
                 r = await client.post(
                     f"{self.api_url}/deleteMessage",
@@ -90,9 +92,18 @@ class TelegramCommandHandler:
                 if r.status_code == 200 and r.json().get('ok'):
                     deleted_count += 1
                     print(f"[OK] Mensaje {msg_id} eliminado")
+                else:
+                    error_count += 1
+                    error_desc = r.json().get('description', 'Unknown error')
+                    if 'CHAT_NOT_MODIFIED' not in error_desc and 'not found' not in error_desc:
+                        print(f"[ERROR] No se pudo eliminar {msg_id}: {error_desc}")
 
             # Enviar confirmación
-            confirmation = f"[LIMPIAR] ✓ Se eliminaron {deleted_count} mensajes"
+            if deleted_count > 0:
+                confirmation = f"✅ Se eliminaron {deleted_count} mensajes"
+            else:
+                confirmation = f"⚠️ No se eliminaron mensajes. Verifica que el bot sea ADMINISTRADOR del canal"
+
             print(f"\n{confirmation}\n")
 
             await client.post(
