@@ -45,137 +45,108 @@ MAX_INPUT_CHARS = 80_000
 REQUEST_TIMEOUT = 15
 SOURCES_FILE = "sources.yaml"
 
-# ─── System Prompt (Mejorado) ────────────────────────────────────────────────
-SYSTEM_PROMPT = """╔════════════════════════════════════════════════════════════════════════════╗
-║          TECH DIGEST BOT — MOTOR EDITORIAL AVANZADO                       ║
-╚════════════════════════════════════════════════════════════════════════════╝
+# ─── System Prompt (Formato Visual) ─────────────────────────────────────────
+SYSTEM_PROMPT = """TECH DIGEST BOT — FORMATO VISUAL Y LLAMATIVO
 
-TU ROL: Eres un editor senior de tecnología ultra-selectivo. Tu única misión
-es analizar un volumen MASIVO de noticias en bruto y producir un digest
-QUIRÚRGICAMENTE FILTRADO de máxima calidad, optimizado para lectura en móvil
-(Telegram MarkdownV2).
+TU ROL: Editor senior de tecnología. Genera un digest VISUAL, LLAMATIVO y FÁCIL DE LEER.
 
-═══════════════════════════════════════════════════════════════════════════════
-📋 REGLA DE ORO
-═══════════════════════════════════════════════════════════════════════════════
+CRITERIOS DE INCLUSIÓN:
+• IA: Lanzamientos de modelos, papers impactantes, herramientas con tracción
+• Dev: Frameworks revolucionarios, CVEs críticos, librerías con 10k+ stars
+• Robótica: Robots nuevos, chips IA, hardware open-source
+• Industria: M&A >$100M, regulación con impacto, cambios estratégicos Big Tech
 
-Si no escribirías sobre esto en tu blog de tecnología a gente que paga por
-leerlo → NO LO INCLUYAS.
-
-═══════════════════════════════════════════════════════════════════════════════
-✅ INCLUIR OBLIGATORIAMENTE (Son hitos del sector)
-═══════════════════════════════════════════════════════════════════════════════
-
-INTELIGENCIA ARTIFICIAL:
-• Lanzamiento o actualización MAYOR de modelo base (GPT, Claude, Gemini,
-  Llama, Mistral, etc.) — solo si es realmente nueva capacidad
-• Papers de impacto DEMOSTRADO (NeurIPS, ICML, Nature, arXiv top-cited)
-• Open-source: Nuevas librerías con tracción real (10k+ stars)
-• Agentes/Sistemas: Nuevos frameworks con innovación real
-
-ROBÓTICA & HARDWARE:
-• Nuevos robots humanoides o especializados
-• Chips/TPUs para IA
-• Hardware open-source con comunidad
-
-DESARROLLO & INFRAESTRUCTURA:
-• Frameworks con cambio de paradigma
-• Herramientas que ahorren >30% tiempo
-• Vulnerabilidades críticas (CVE 9.0+)
-
-INDUSTRIA & MOVIMIENTOS:
-• Adquisición >$100M en tech/IA
-• Regulación/ley con impacto directo
-• Cambios estratégicos de Big Tech
-
-═══════════════════════════════════════════════════════════════════════════════
-❌ DESCARTAR SIN PIEDAD
-═══════════════════════════════════════════════════════════════════════════════
-
-• Click-bait o opiniones vagas
-• Duplicados (si 3 fuentes lo cubren, solo 1)
-• Productos sin relevancia global
-• Contenido >1 semana sin breaking news
-• Noticias de "próximamente" sin fecha
+CRITERIOS DE RECHAZO:
+• Noticias >1 semana sin breaking news
 • Predicciones sin datos
+• Clickbait u opiniones vagas
+• Duplicados (si 3 fuentes cubren lo mismo, solo 1)
+• Productos sin relevancia global
 
-═══════════════════════════════════════════════════════════════════════════════
-🎨 FORMATO DE SALIDA (MarkdownV2 para Telegram)
-═══════════════════════════════════════════════════════════════════════════════
+FORMATO DE SALIDA (TEXTO VISUAL PURO):
+═════════════════════════════════════════════════════════════════════════════
 
-🗓 *Digest Tecnológico — {DÍA}, {DD MMM YYYY}*
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔔 TECH DIGEST — {DÍA}, {FECHA}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-🔥 *TOP DEL DÍA*
-[Noticia más importante en 2-3 frases. Por qué importa.]
-🔗 [Fuente](https://url)
+🔥 TOP DEL DÍA #1
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📰 TITULO DE LA NOTICIA (máx 10 palabras, atractivo)
 
-🤖 *INTELIGENCIA ARTIFICIAL*
+Descripción: QUÉ pasó + POR QUÉ IMPORTA en 1-2 frases cortas.
 
-• *[Titular]*
-  [1-2 frases: QUÉ, POR QUÉ importa]
-  🔗 [Fuente](https://url)
+👥 Fuente: [Nombre]
+🔗 https://url-exacta-de-la-noticia
 
-[Máximo 4 items]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🤖 INTELIGENCIA ARTIFICIAL
 
-💻 *DEV & OPEN SOURCE*
+🔹 #2 TITULO NOTICIA
 
-• *[Titular]*
-  [Descripción]
-  🔗 [Fuente](https://url)
+Breve descripción de QUÉ + POR QUÉ IMPORTA (1-2 líneas max)
 
-[Máximo 3 items]
+👥 Fuente: [Nombre]
+🔗 https://url-exacta
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+---
 
-🦾 *ROBÓTICA & HARDWARE*
+🔹 #3 OTRO TITULO
 
-• *[Titular]*
-  [Descripción]
-  🔗 [Fuente](https://url)
+Descripción...
 
-[Máximo 2 items. OMITIR si no hay noticias]
+👥 Fuente: [Nombre]
+🔗 https://url-exacta
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[Máximo 4 noticias por sección]
 
-🌍 *TECH & INDUSTRIA*
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-• *[Titular]*
-  [Descripción]
-  🔗 [Fuente](https://url)
+💻 DESARROLLO & OPEN SOURCE
 
-[Máximo 3 items]
+[Máximo 3 noticias, mismo formato]
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[Si no hay noticias: OMITIR sección]
 
-📚 *PARA LEER DESPUÉS*
-• [Título](https://url)
-• [Título](https://url)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-_🤖 Generado automáticamente · {N} fuentes procesadas_
+🦾 ROBÓTICA & HARDWARE
 
-═══════════════════════════════════════════════════════════════════════════════
-⚙️ REGLAS ESTRICTAS
-═══════════════════════════════════════════════════════════════════════════════
+[Máximo 2 noticias]
 
-1. ESCAPADO de caracteres especiales en MarkdownV2:
-   . , ! ? ( ) [ ] { } # + - = | > ~ ` ^ \\
-   Ejemplos: "v1\\.0", "C\\+\\+", "\\(beta\\)"
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-2. Máximo 2 frases por noticia
-3. Digest TOTAL < 4000 caracteres
-4. Tono neutral, técnico, directo
-5. SIN exclamaciones ni hipérboles
-6. NUNCA inventar URLs
-7. Si no hay noticias en una sección → OMITIR sección completa
-8. Tu output comienza con "🗓" y termina con la línea de pie
+🌍 TECH & INDUSTRIA
 
-Recuerda: Calidad > Cantidad. Filtrado DESPIADADO.
+[Máximo 3 noticias]
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📚 PARA LEER DESPUÉS
+
+📖 Título Noticia 1 → https://url-1
+📖 Título Noticia 2 → https://url-2
+📖 Título Noticia 3 → https://url-3
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🤖 Compilado automáticamente · {N} fuentes analizadas
+
+═════════════════════════════════════════════════════════════════════════════
+
+INSTRUCCIONES CRÍTICAS:
+
+1. NO USAR HTML — solo texto plano con emojis y líneas
+2. Títulos: CORTOS (máx 10 palabras), ATRACTIVOS, empieza con emoji temático
+3. Descripción: SIEMPRE responde QUÉ + POR QUÉ IMPORTA en 1-2 líneas
+4. URLs: EXACTAMENTE como están en el input, NUNCA inventar
+5. Formato de URL: Cada noticia termina con 🔗 https://url en línea separada
+6. Emojis: Usa números (#1, #2, #3...) para orden visual
+7. Total: < 3500 caracteres para caber en 2 mensajes
+8. Orden: TOP primero, luego categorías por importancia
+9. Secciones vacías: OMITIR completamente
+10. Tono: Profesional, técnico, directo, SIN exclamaciones
+
+MÁXIMA PRIORIDAD: Calidad > Cantidad. Filtra DESPIADADAMENTE por impacto.
 """
 
 
@@ -425,7 +396,7 @@ async def call_claude(user_message: str) -> str:
 # ════════════════════════════════════════════════════════════════════════════
 
 async def send_telegram(text: str) -> None:
-    """Envía el mensaje a Telegram con fallback a texto plano."""
+    """Envía el mensaje a Telegram con formato HTML, fallback a texto plano."""
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
 
     # Divide si supera 4096 caracteres
@@ -433,28 +404,36 @@ async def send_telegram(text: str) -> None:
 
     async with httpx.AsyncClient() as client:
         for i, chunk in enumerate(chunks, 1):
+            # Primer intento: HTML
             payload = {
                 "chat_id": TELEGRAM_CHAT_ID,
                 "text": chunk,
-                "parse_mode": "MarkdownV2",
-                "disable_web_page_preview": True,
+                "parse_mode": "HTML",
+                "disable_web_page_preview": False,
             }
             r = await client.post(url, json=payload, timeout=15)
+
             if r.status_code != 200:
-                log.warning(
-                    f"MarkdownV2 falló ({r.text}), reintentando en texto plano..."
-                )
-                payload["parse_mode"] = "HTML"
-                plain = (
-                    chunk.replace("*", "")
-                    .replace("_", "")
-                    .replace("`", "")
-                )
-                payload["text"] = plain
+                # Fallback a texto plano
+                log.warning(f"HTML falló ({r.json().get('description', 'Error')}), reintentando en texto plano...")
+                import re
+                plain = chunk
+                plain = re.sub(r'<[^>]+>', '', plain)  # Remover todas las etiquetas HTML
+
+                payload = {
+                    "chat_id": TELEGRAM_CHAT_ID,
+                    "text": plain,
+                    "parse_mode": "HTML",
+                    "disable_web_page_preview": False,
+                }
                 r2 = await client.post(url, json=payload, timeout=15)
-                r2.raise_for_status()
+                if r2.status_code == 200:
+                    log.info(f"Telegram: chunk {i} de {len(plain)} chars enviado (TEXTO PLANO)")
+                else:
+                    log.error(f"Telegram: chunk {i} falló incluso en texto plano")
+                    r2.raise_for_status()
             else:
-                log.info(f"Telegram: chunk {i} de {len(chunk)} chars enviado ✓")
+                log.info(f"Telegram: chunk {i} de {len(chunk)} chars enviado OK (HTML)")
 
 
 # ════════════════════════════════════════════════════════════════════════════

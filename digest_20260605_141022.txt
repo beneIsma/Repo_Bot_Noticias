@@ -1,0 +1,82 @@
+🗓 *Digest Tecnológico — Viernes, 05 Jun 2026*
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🔥 *TOP DEL DÍA*
+
+*Anthropic camino al IPO: ingresos anualizados alcanzan $47B*
+La empresa de IA alcanzó un crecimiento explosivo desde $9B a finales de 2025\. Su salida a bolsa enfrenta pruebas reales sobre la sostenibilidad del modelo de negocio de IA\.
+🔗 [TechCrunch](https://techcrunch.com/2026/06/04/ahead-of-its-ipo-anthropics-daniela-amodei-shrugs-off-doubts-about-ais-returns/)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🤖 *INTELIGENCIA ARTIFICIAL*
+
+• *Meta sufre hack crítico en su agente de soporte IA*
+  Atacantes usaron el asistente de IA de Meta para robar cuentas de Instagram redirigiendo a emails controlados\. Expone vulnerabilidades en sistemas de autenticación delegados a IA\.
+  🔗 [MIT Technology Review](https://www.technologyreview.com/2026/06/05/1138437/the-meta-hack-shows-theres-more-to-ai-security-than-mythos/)
+
+• *Nemotron 3\.5: seguridad multimodal personalizable para IA empresarial*
+  NVIDIA lanza herramientas de seguridad de contenido personalizables para modelos de IA en producción\.
+  🔗 [Hugging Face](https://huggingface.co/blog/nvidia/nemotron-3-5-content-safety)
+
+• *Mellum2: modelo MoE de 12B parámetros de JetBrains*
+  Nueva arquitectura Mixture\-of\-Experts optimizada para eficiencia en inferencia\.
+  🔗 [Hugging Face](https://huggingface.co/blog/JetBrains/mellum2-launch)
+
+• *GPT\-Rosalind: nuevas capacidades para investigación en ciencias de la vida*
+  OpenAI expande su modelo especializado con razonamiento biológico mejorado, análisis de genómica y flujos de trabajo experimentales\.
+  🔗 [OpenAI Blog](https://openai.com/index/introducing-new-capabilities-to-gpt-rosalind)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+💻 *DEV & OPEN SOURCE*
+
+• *Dropbox Nova: plataforma interna para orquestar agentes de IA*
+  Sistema para operacionalizar agentes de código IA a escala en flujos de trabajo de ingeniería\.
+  🔗 [InfoQ](https://www.infoq.com/news/2026/06/dropbox-nova-ai-coding-agents/)
+
+• *TypeORM 1\.0: primer lanzamiento mayor en una década*
+  ORM TypeScript/JavaScript moderniza requisitos de plataforma y elimina dependencias heredadas tras 10 años de desarrollo\.
+  🔗 [InfoQ](https://www.infoq.com/news/2026/06/typeorm-1-released/)
+
+• *GitHub Copilot App: experiencia nativa para agentes*
+  Microsoft Build 2026 presenta nuevas herramientas para que agentes IA trabajen en flujos de desarrollo existentes\.
+  🔗 [GitHub Blog](https://github.blog/news-insights/product-news/github-copilot-app-the-agent-native-desktop-experience/)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🦾 *ROBÓTICA & HARDWARE*
+
+• *Hello Robot Stretch Gen4: robot doméstico de nueva generación*
+  Cuarta generación del robot de asistencia para el hogar, acercando la robótica doméstica a usuarios finales\.
+  🔗 [TechCrunch](https://techcrunch.com/2026/06/04/is-silicon-valley-ready-to-put-robots-in-peoples-homes-hello-robot-is/)
+
+• *AWS reduce routers en centros de datos un 69% con grafos aleatorios*
+  Nueva arquitectura de red plana basada en teoría de grafos quasi\-aleatorios reemplaza topología fat\-tree tradicional\.
+  🔗 [InfoQ](https://www.infoq.com/news/2026/06/aws-random-graph-data-center/)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🌍 *TECH & INDUSTRIA*
+
+• *Meta construye centros de datos en carpas para reducir costos*
+  Estrategia inspirada en Tesla para abaratar infraestructura de IA a escala masiva\.
+  🔗 [TechCrunch](https://techcrunch.com/2026/06/04/meta-steals-a-tactic-from-tesla-and-builds-data-centers-in-tents/)
+
+• *Google firma acuerdo de plantas virtuales de energía para data centers*
+  Nuevo deal con Voltus para financiar plantas virtuales que alimenten centros de datos en la mayor red eléctrica de EE\.UU\.
+  🔗 [MIT Technology Review](https://www.technologyreview.com/2026/06/03/1138350/virtual-power-plants-data-centers/)
+
+• *Poke: primer agente IA aprobado en Apple Messages for Business*
+  Startup de agentes de texto se convierte en primer tercero autorizado en plataforma de negocios de Apple\.
+  🔗 [TechCrunch](https://techcrunch.com/2026/06/04/apple-approves-poke-as-the-first-ai-agent-on-its-messages-for-business-platform/)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📚 *PARA LEER DESPUÉS*
+• [Cómo los tribunales lidian con demandas generadas por IA](https://www.technologyreview.com/2026/06/04/1138391/courts-coping-ai-lawsuits/)
+• [Netflix mapea miles de microservicios en tiempo real](https://www.infoq.com/news/2026/06/netflix-microservices-realtime/)
+• [LiteRT\-LM acelera inferencia local hasta 2\.2x con Gemma 4](https://www.infoq.com/news/2026/06/google-litertlm-gemma4/)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+_🤖 Generado automáticamente · 345 fuentes procesadas_
