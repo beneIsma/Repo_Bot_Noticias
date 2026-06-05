@@ -36,24 +36,12 @@ rss_feeds:
     url: "https://www.xataka.com/feedburner.xml"
     tags: ["tech"]
 
-  - name: "Xataka IA"
-    url: "https://www.xataka.com/tag/inteligencia-artificial/feedburner.xml"
-    tags: ["tech"]
-
   - name: "Genbeta"
     url: "https://www.genbeta.com/rss2.xml"
     tags: ["dev", "tech"]
 
-  - name: "Nobbot IA"
-    url: "https://www.nobbot.com/feed/"
-    tags: ["tech"]
-
   - name: "Muycomputer"
     url: "https://www.muycomputer.com/feed/"
-    tags: ["tech"]
-
-  - name: "Economía Digital IA"
-    url: "https://www.economiadigital.es/rss/tag/inteligencia-artificial.xml"
     tags: ["tech"]
 
   - name: "Computerworld España"
@@ -172,9 +160,6 @@ youtube_channels:
   - name: "Theo (t3.gg)"
     channel_id: "UCbRP3c757lWg9M-U7TyEkXA"
 
-  - name: "ThePrimeagen"
-    channel_id: "UC8ENHE5xdFSwx71WHd4J1SQ"
-
   # Programación & Dev (Español)
   - name: "Fazt Code"
     handle: "@FaztCode"
@@ -195,9 +180,6 @@ youtube_channels:
     handle: "@EurekaTutoriales"
 
   # Matemáticas & Ciencia
-  - name: "3Blue1Brown"
-    channel_id: "UCYO_jab_esuFRV4b17AJtAg"
-
   - name: "Veritasium"
     channel_id: "UCHnyfMqiRRG1u-2MsSQLbXA"
 

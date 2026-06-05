@@ -1,19 +1,18 @@
 """
-Tech Digest Bot v2.0 — Motor principal mejorado
-Flujo: sources.yaml → Fetch APIs/RSS → Claude API → Telegram
+Tech Digest Bot v2.2 — Visual Format with Real Article Images
+Flujo: sources.yaml → Fetch APIs/RSS → Claude API → Real Images → Telegram
 """
 
 import os
 import logging
 import asyncio
+import re
 from datetime import datetime, timezone
-from typing import Any
 
 import httpx
 import feedparser
 import yaml
 
-# Cargar variables desde .env si existen
 def load_env_file():
     env_path = ".env"
     if os.path.exists(env_path):
@@ -45,10 +44,10 @@ MAX_INPUT_CHARS = 80_000
 REQUEST_TIMEOUT = 15
 SOURCES_FILE = "sources.yaml"
 
-# ─── System Prompt (Formato Visual) ─────────────────────────────────────────
-SYSTEM_PROMPT = """TECH DIGEST BOT — FORMATO VISUAL Y LIMPIO
+# ─── System Prompt ────────────────────────────────────────────────────────────
+SYSTEM_PROMPT = """TECH DIGEST BOT — FORMATO LIMPIO Y ESTRUCTURADO
 
-TU ROL: Editor senior de tecnología. Genera un digest LIMPIO, VISUAL y FÁCIL DE LEER.
+TU ROL: Editor senior de tecnología. Curador de noticias impactantes.
 
 CRITERIOS DE INCLUSIÓN:
 • Dev: Frameworks revolucionarios, CVEs críticos, librerías con 10k+ stars
@@ -60,187 +59,73 @@ CRITERIOS DE RECHAZO:
 • Predicciones sin datos
 • Clickbait u opiniones vagas
 • Duplicados (si 3 fuentes cubren lo mismo, solo 1)
-• Productos sin relevancia global
 
-FORMATO DE SALIDA (TEXTO VISUAL PURO - TODAS LAS NOTICIAS IGUAL):
-═════════════════════════════════════════════════════════════════════════════
+FORMATO DE SALIDA EXACTO:
 
 🔔 NOTICIAS — {DÍA}, {FECHA}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-#1 📰 TITULO DE LA NOTICIA (máx 10 palabras, atractivo)
+[NOTICIA_INICIO]
+#1 TITULO DE LA NOTICIA (máx 60 caracteres, atractivo)
+Descripción en 1-2 líneas: QUÉ pasó y POR QUÉ IMPORTA
+👥 Nombre Fuente
+https://url-exacta-de-la-noticia
+[NOTICIA_FIN]
 
-Descripción: QUÉ pasó + POR QUÉ IMPORTA en 1-2 frases cortas.
-
-👥 Fuente: [Nombre]
-🔗 https://url-exacta-de-la-noticia
-
----
-
-#2 📰 OTRO TITULO NOTICIA
-
-Descripción de QUÉ + POR QUÉ IMPORTA (1-2 líneas max)
-
-👥 Fuente: [Nombre]
-🔗 https://url-exacta
-
----
-
-[Máximo 6-8 noticias totales, todas con MISMO FORMATO]
+[NOTICIA_INICIO]
+#2 OTRO TITULO NOTICIA
+Descripción en 1-2 líneas breve
+👥 Nombre Fuente
+https://url-exacta
+[NOTICIA_FIN]
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-📚 PARA LEER DESPUÉS (Quick Links)
-
-📖 Título 1 → https://url-1
-📖 Título 2 → https://url-2
-📖 Título 3 → https://url-3
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 🤖 Compilado automáticamente · {N} fuentes analizadas
-
-═════════════════════════════════════════════════════════════════════════════
-
-INSTRUCCIONES CRÍTICAS:
-
-1. NO USAR HTML — solo texto plano con emojis y líneas
-2. TODAS LAS NOTICIAS: Mismo formato #1, #2, #3... sin categorías
-3. Títulos: CORTOS (máx 10 palabras), ATRACTIVOS con emoji
-4. Descripción: QUÉ + POR QUÉ IMPORTA en 1-2 líneas
-5. URLs: EXACTAMENTE como están en el input, NUNCA inventar
-6. Separador: --- (tres guiones) entre noticias
-7. Total: < 3500 caracteres para caber en 2 mensajes
-8. Orden: Por importancia/relevancia
-9. Tono: Profesional, técnico, directo, SIN exclamaciones
-
-MÁXIMA PRIORIDAD: Calidad > Cantidad. Filtra DESPIADADAMENTE por impacto.
 """
 
-
-# ════════════════════════════════════════════════════════════════════════════
-# 1. CARGA DE FUENTES
-# ════════════════════════════════════════════════════════════════════════════
-
-def load_sources(path: str = SOURCES_FILE) -> dict:
-    """Carga la configuración de fuentes desde YAML."""
+def load_sources(filename: str) -> dict:
+    """Carga configuración de fuentes desde YAML."""
     try:
-        with open(path, "r", encoding="utf-8") as f:
-            return yaml.safe_load(f)
+        with open(filename, "r", encoding="utf-8") as f:
+            return yaml.safe_load(f) or {}
     except FileNotFoundError:
-        log.error(f"Archivo {path} no encontrado")
+        log.warning(f"{filename} no encontrado. Usando configuración vacía.")
         return {}
 
-
 # ════════════════════════════════════════════════════════════════════════════
-# 2. FETCH DE CONTENIDO
+# RECOPILACIÓN DE NOTICIAS
 # ════════════════════════════════════════════════════════════════════════════
 
 async def fetch_rss(
     client: httpx.AsyncClient, name: str, url: str
 ) -> list[dict]:
-    """Parsea un feed RSS/Atom y devuelve lista de artículos."""
+    """Obtiene artículos de un feed RSS."""
     try:
-        r = await client.get(url, timeout=REQUEST_TIMEOUT)
+        r = await client.get(url, timeout=REQUEST_TIMEOUT, follow_redirects=True)
         r.raise_for_status()
         feed = feedparser.parse(r.text)
         items = []
         for entry in feed.entries[:MAX_ITEMS_PER_SOURCE]:
-            items.append(
-                {
-                    "source": name,
-                    "title": entry.get("title", "Sin título"),
-                    "url": entry.get("link", ""),
-                    "summary": entry.get("summary", entry.get("description", ""))[
-                        :500
-                    ],
-                }
-            )
+            # Extraer imagen si está disponible
+            image_url = None
+            if hasattr(entry, 'media_content') and entry.media_content:
+                image_url = entry.media_content[0].get('url')
+            elif hasattr(entry, 'image'):
+                image_url = entry.image.get('href')
+
+            items.append({
+                "source": name,
+                "title": entry.get("title", "")[:100],
+                "url": entry.get("link", ""),
+                "summary": entry.get("summary", "")[:300],
+                "image_url": image_url,
+            })
         log.info(f"RSS [{name}]: {len(items)} artículos")
         return items
     except Exception as e:
         log.warning(f"RSS [{name}] falló: {e}")
         return []
-
-
-async def fetch_hackernews(
-    client: httpx.AsyncClient, top_n: int = 20
-) -> list[dict]:
-    """Obtiene los top stories de Hacker News."""
-    try:
-        r = await client.get(
-            "https://hacker-news.firebaseio.com/v0/topstories.json",
-            timeout=REQUEST_TIMEOUT,
-        )
-        ids = r.json()[:top_n]
-
-        async def get_item(item_id: int) -> dict | None:
-            try:
-                resp = await client.get(
-                    f"https://hacker-news.firebaseio.com/v0/item/{item_id}.json",
-                    timeout=REQUEST_TIMEOUT,
-                )
-                return resp.json()
-            except Exception:
-                return None
-
-        stories = await asyncio.gather(*[get_item(i) for i in ids])
-        items = []
-        for s in stories:
-            if s and s.get("type") == "story" and s.get("url"):
-                items.append(
-                    {
-                        "source": "Hacker News",
-                        "title": s.get("title", ""),
-                        "url": s.get("url", f"https://news.ycombinator.com/item?id={s['id']}"),
-                        "summary": f"Score: {s.get('score', 0)} puntos, {s.get('descendants', 0)} comentarios",
-                    }
-                )
-        log.info(f"HackerNews: {len(items)} stories")
-        return items
-    except Exception as e:
-        log.warning(f"HackerNews falló: {e}")
-        return []
-
-
-async def fetch_devto(
-    client: httpx.AsyncClient, tags: list[str], per_page: int = 10
-) -> list[dict]:
-    """Obtiene artículos de Dev.to filtrados por tags."""
-    items = []
-    for tag in tags:
-        try:
-            r = await client.get(
-                f"https://dev.to/api/articles?tag={tag}&per_page={per_page}&top=1",
-                timeout=REQUEST_TIMEOUT,
-            )
-            r.raise_for_status()
-            for article in r.json():
-                items.append(
-                    {
-                        "source": f"Dev.to #{tag}",
-                        "title": article.get("title", ""),
-                        "url": article.get("url", ""),
-                        "summary": article.get("description", "")[:400],
-                    }
-                )
-        except Exception as e:
-            log.warning(f"Dev.to [{tag}] falló: {e}")
-    log.info(f"Dev.to: {len(items)} artículos")
-    return items
-
-
-async def fetch_reddit(
-    client: httpx.AsyncClient, subreddits: list[dict]
-) -> list[dict]:
-    """Obtiene posts hot de subreddits via RSS público."""
-    items = []
-    for sub in subreddits:
-        name = sub["name"]
-        url = f"https://www.reddit.com/r/{name}/hot/.rss?limit={MAX_ITEMS_PER_SOURCE}"
-        result = await fetch_rss(client, f"r/{name}", url)
-        items.extend(result)
-    return items
-
 
 async def fetch_youtube_channels(
     client: httpx.AsyncClient, channels: list[dict]
@@ -248,43 +133,39 @@ async def fetch_youtube_channels(
     """Obtiene últimos vídeos de canales de YouTube via RSS."""
     items = []
     for ch in channels:
-        # Solo procesar canales con channel_id configurado
         if "channel_id" not in ch:
-            log.debug(f"YouTube [{ch['name']}]: Sin channel_id, saltando")
             continue
         url = f"https://www.youtube.com/feeds/videos.xml?channel_id={ch['channel_id']}"
         result = await fetch_rss(client, f"YouTube: {ch['name']}", url)
-        items.extend(result[:3])
+        # Para YouTube, extraer video_id y crear URL de thumbnail
+        for item in result[:3]:
+            match = re.search(r'v=([a-zA-Z0-9_-]+)', item['url'])
+            if match:
+                video_id = match.group(1)
+                item['image_url'] = f"https://img.youtube.com/vi/{video_id}/maxresdefault.jpg"
+            items.append(item)
     return items
-
 
 async def collect_all_news(sources: dict) -> list[dict]:
     """Recopila noticias de todas las fuentes configuradas en paralelo."""
     headers = {
-        "User-Agent": "TechDigestBot/2.0 (personal use)",
+        "User-Agent": "TechDigestBot/2.2 (personal use)",
         "Accept": "application/rss+xml, application/xml, text/xml, */*",
     }
     async with httpx.AsyncClient(headers=headers, follow_redirects=True) as client:
         tasks = []
-
-        # RSS Feeds
         for feed in sources.get("rss_feeds", []):
             tasks.append(fetch_rss(client, feed["name"], feed["url"]))
-
-
-        # YouTube
         if sources.get("youtube_channels"):
             tasks.append(fetch_youtube_channels(client, sources["youtube_channels"]))
-
         results = await asyncio.gather(*tasks)
 
     all_items = [item for sublist in results for item in sublist]
     log.info(f"Total artículos recopilados: {len(all_items)}")
     return all_items
 
-
 # ════════════════════════════════════════════════════════════════════════════
-# 3. PROCESAMIENTO CON CLAUDE
+# PROCESAMIENTO CON CLAUDE
 # ════════════════════════════════════════════════════════════════════════════
 
 def build_user_message(articles: list[dict]) -> str:
@@ -309,9 +190,8 @@ def build_user_message(articles: list[dict]) -> str:
 
     text = "\n".join(lines)
     if len(text) > MAX_INPUT_CHARS:
-        text = text[:MAX_INPUT_CHARS] + "\n\n[...contenido truncado por límite de tokens]"
+        text = text[:MAX_INPUT_CHARS] + "\n\n[...contenido truncado]"
     return text
-
 
 async def call_claude(user_message: str) -> str:
     """Genera el digest usando Claude API (Anthropic)."""
@@ -327,9 +207,7 @@ async def call_claude(user_message: str) -> str:
                 "model": CLAUDE_MODEL,
                 "max_tokens": 2048,
                 "system": SYSTEM_PROMPT,
-                "messages": [
-                    {"role": "user", "content": user_message},
-                ],
+                "messages": [{"role": "user", "content": user_message}],
                 "temperature": 0.3,
             },
             timeout=60,
@@ -342,105 +220,135 @@ async def call_claude(user_message: str) -> str:
         log.info(f"Claude: {input_tokens} entrada, {output_tokens} salida tokens")
         return digest
 
+# ════════════════════════════════════════════════════════════════════════════
+# MAPEO ARTICULOS → IMAGENES
+# ════════════════════════════════════════════════════════════════════════════
+
+def parse_articles(digest: str, all_articles: list[dict]) -> list[dict]:
+    """Parsea digest y asocia imágenes reales de los artículos."""
+    articles = []
+    pattern = r'\[NOTICIA_INICIO\](.*?)\[NOTICIA_FIN\]'
+    matches = re.findall(pattern, digest, re.DOTALL)
+
+    for match in matches:
+        lines = [l.strip() for l in match.strip().split('\n') if l.strip()]
+        if len(lines) < 4:
+            continue
+
+        titulo = lines[0].replace('#1 ', '').replace('#2 ', '').replace('#3 ', '').replace('#4 ', '').replace('#5 ', '').strip()
+        descripcion = lines[1] if len(lines) > 1 else ""
+        fuente = lines[2].replace('👥 ', '').strip() if len(lines) > 2 else "Unknown"
+        url = lines[3] if len(lines) > 3 else ""
+
+        # Buscar imagen asociada en los artículos originales
+        image_url = None
+        for a in all_articles:
+            if url == a.get('url') and a.get('image_url'):
+                image_url = a['image_url']
+                break
+
+        articles.append({
+            "titulo": titulo[:60],
+            "descripcion": descripcion[:100],
+            "fuente": fuente,
+            "url": url,
+            "image_url": image_url,
+        })
+
+    return articles
 
 # ════════════════════════════════════════════════════════════════════════════
-# 4. ENVÍO A TELEGRAM
+# ENVÍO A TELEGRAM
 # ════════════════════════════════════════════════════════════════════════════
 
-async def send_telegram(text: str) -> None:
-    """Envía el mensaje a Telegram con formato HTML + fotos de YouTube."""
-    import re
+async def send_telegram_visual(digest: str, all_articles: list[dict]) -> None:
+    """Envía cada noticia: imagen real + título + descripción + URL directa."""
+    articles = parse_articles(digest, all_articles)
+    log.info(f"Enviando {len(articles)} noticias...")
 
-    url_message = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
     url_photo = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendPhoto"
+    url_message = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
 
-    # Divide si supera 4096 caracteres
-    chunks = [text[i : i + 4096] for i in range(0, len(text), 4096)]
+    # Emoji de tipo según fuente
+    def source_emoji(fuente: str) -> str:
+        if "YouTube" in fuente:
+            return "🎬"
+        return "📰"
 
     async with httpx.AsyncClient() as client:
-        for i, chunk in enumerate(chunks, 1):
-            # Primer intento: HTML
-            payload = {
-                "chat_id": TELEGRAM_CHAT_ID,
-                "text": chunk,
-                "parse_mode": "HTML",
-                "disable_web_page_preview": False,
-            }
-            r = await client.post(url_message, json=payload, timeout=15)
+        for i, art in enumerate(articles, 1):
+            emoji = source_emoji(art['fuente'])
 
-            if r.status_code != 200:
-                # Fallback a texto plano
-                log.warning(f"HTML falló ({r.json().get('description', 'Error')}), reintentando en texto plano...")
-                plain = chunk
-                plain = re.sub(r'<[^>]+>', '', plain)  # Remover todas las etiquetas HTML
+            # Texto: título, descripción, fuente, URL directa (sin HTML links)
+            texto = (
+                f"{emoji} {art['titulo']}\n\n"
+                f"{art['descripcion']}\n\n"
+                f"📍 {emoji} {art['fuente']}\n"
+                f"🔗 {art['url']}"
+            )
 
+            if art.get('image_url'):
+                # Enviar imagen con el texto como caption
                 payload = {
                     "chat_id": TELEGRAM_CHAT_ID,
-                    "text": plain,
-                    "parse_mode": "HTML",
+                    "photo": art['image_url'],
+                    "caption": texto,
+                }
+                r = await client.post(url_photo, json=payload, timeout=15)
+                if r.status_code == 200:
+                    log.info(f"Noticia #{i} enviada con imagen")
+                else:
+                    # Si la imagen falla, enviar solo texto con preview de URL
+                    log.warning(f"Noticia #{i} imagen falló, enviando texto")
+                    payload = {
+                        "chat_id": TELEGRAM_CHAT_ID,
+                        "text": texto,
+                        "disable_web_page_preview": False,
+                    }
+                    await client.post(url_message, json=payload, timeout=15)
+            else:
+                # Sin imagen: enviar texto; Telegram genera preview desde la URL
+                payload = {
+                    "chat_id": TELEGRAM_CHAT_ID,
+                    "text": texto,
                     "disable_web_page_preview": False,
                 }
-                r2 = await client.post(url_message, json=payload, timeout=15)
-                if r2.status_code == 200:
-                    log.info(f"Telegram: chunk {i} de {len(plain)} chars enviado (TEXTO PLANO)")
+                r = await client.post(url_message, json=payload, timeout=15)
+                if r.status_code == 200:
+                    log.info(f"Noticia #{i} enviada con preview de URL")
                 else:
-                    log.error(f"Telegram: chunk {i} falló incluso en texto plano")
-                    r2.raise_for_status()
-            else:
-                log.info(f"Telegram: chunk {i} de {len(chunk)} chars enviado OK (HTML)")
+                    log.warning(f"Noticia #{i} falló: {r.json().get('description', '')}")
 
-        # Enviar thumbnails de videos de YouTube encontrados en el texto
-        youtube_urls = re.findall(r'https://www\.youtube\.com/watch\?v=([a-zA-Z0-9_-]+)', text)
-        youtube_urls += re.findall(r'https://youtu\.be/([a-zA-Z0-9_-]+)', text)
-
-        for video_id in set(youtube_urls):  # Eliminar duplicados
-            thumbnail_url = f"https://img.youtube.com/vi/{video_id}/maxresdefault.jpg"
-            payload = {
-                "chat_id": TELEGRAM_CHAT_ID,
-                "photo": thumbnail_url,
-                "caption": "📺 Video de YouTube",
-                "parse_mode": "HTML",
-            }
-            r = await client.post(url_photo, json=payload, timeout=15)
-            if r.status_code == 200:
-                log.info(f"Telegram: Foto de video {video_id} enviada")
-            else:
-                log.debug(f"Telegram: No se pudo enviar foto del video {video_id}")
-
+            await asyncio.sleep(3.0)
 
 # ════════════════════════════════════════════════════════════════════════════
-# 5. MAIN
+# MAIN
 # ════════════════════════════════════════════════════════════════════════════
 
 async def main() -> None:
     """Flujo principal del bot."""
-    log.info("━━━ Tech Digest Bot v2.0 iniciando ━━━")
+    log.info("━━━ Tech Digest Bot v2.2 (Imágenes Reales) iniciando ━━━")
 
     if not all([ANTHROPIC_API_KEY, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID]):
-        log.error("Faltan variables de entorno: ANTHROPIC_API_KEY, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID")
+        log.error("Faltan variables de entorno")
         return
 
-    # 1. Cargar fuentes
     sources = load_sources(SOURCES_FILE)
     log.info(f"Fuentes cargadas desde {SOURCES_FILE}")
 
-    # 2. Recopilar noticias
     articles = await collect_all_news(sources)
     if not articles:
         log.error("No se obtuvieron artículos. Abortando.")
         return
 
-    # 3. Construir prompt y llamar a Claude
     log.info("Enviando artículos a Claude para procesamiento...")
     user_message = build_user_message(articles)
     digest = await call_claude(user_message)
     log.info(f"Digest generado: {len(digest)} caracteres")
 
-    # 4. Enviar a Telegram
-    log.info("Enviando digest a Telegram...")
-    await send_telegram(digest)
+    log.info("Enviando digest a Telegram con imágenes reales...")
+    await send_telegram_visual(digest, articles)
     log.info("━━━ Digest enviado con éxito ━━━")
-
 
 if __name__ == "__main__":
     asyncio.run(main())

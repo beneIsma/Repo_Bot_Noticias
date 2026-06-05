@@ -4,9 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Tech Digest Bot v2.5** — Un agregador inteligente de noticias que recopila artículos de tecnología, IA y robótica de 40+ fuentes, los filtra usando Claude API + subagentes especializados, y entrega resúmenes curados vía Telegram cada hora.
+**Tech Digest Bot v2.2** — Un agregador de noticias que recopila artículos de 13 fuentes RSS y 13 canales YouTube, los filtra usando Claude API, y entrega noticias curadas vía Telegram cada hora con imágenes reales.
 
-Propósito: Entrega de noticias técnicas de impacto real, sin ruido, directamente en Telegram. Control editorial total del usuario mediante subagentes.
+Propósito: Entrega automática de noticias tecnológicas de impacto, visualmente atractivas, sin ruido.
 
 ## Architecture
 
@@ -15,63 +15,44 @@ Propósito: Entrega de noticias técnicas de impacto real, sin ruido, directamen
 ```
 AUTOMATIZADO (Cada hora vía GitHub Actions):
 
-sources.yaml (40+ fuentes)
+sources.yaml (13 RSS + 13 YouTube)
     ↓
-[bot_v2.py → collect_all_news()]
-    ├─ RSS feeds (Xataka, MIT Review, Wired, ArXiv, etc.)
-    ├─ Hacker News (API Firebase)
-    ├─ Dev.to (API REST)
-    ├─ Reddit (RSS)
-    └─ YouTube (40+ canales: IA, Dev, Español)
+[bot_v2.py] → Recopila 156+ artículos
+    ├─ RSS feeds: Xataka, El País, GitHub, The Verge, etc.
+    └─ YouTube: midudev, Lex Fridman, Two Minute Papers, etc.
     ↓
-[Artículos crudos JSON] — {source, title, url, summary}
+[Artículos JSON] — {source, title, url, summary, image_url}
     ↓
-[Claude API] — SYSTEM_PROMPT → digest MarkdownV2
+[Claude API - haiku-4-5] → Filtra a 5-8 noticias impactantes
     ↓
-[send_telegram] — Envía chunk si >4096 chars
+[send_telegram_visual] → Envía cada noticia:
+    • Imagen real (si disponible)
+    • Título + Descripción + Fuente + Link (en caption)
     ↓
-Telegram chat (cada hora)
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-OPCIONAL — CURACIÓN MANUAL (Invocas tú desde Claude Code):
-
-[Artículos crudos del día]
-    ↓
-[TÚ] → "Curador estos artículos"
-    ↓
-[content-curator-telegram] — Filtra duplicados, marketing, aprueba editorialamente
-    ↓
-[Artículos aprobados] — {source, title, category, urgency}
-    ↓
-[telegram-content-writer] — Formatea MarkdownV2 atractivo con emojis
-    ↓
-[Post Telegram formateado] — Listo para copiar-pegar
-    ↓
-TÚ copias al chat manualmente
+Telegram chat (cada hora, ~10 segundos)
 ```
 
 ### Core Modules
 
-- **bot_v2.py** — Script principal (orquesta recolección y envío)
+- **bot_v2.py** — Script principal (orquesta recolección, filtrado y envío)
   - `load_sources()` — Lee sources.yaml
-  - `fetch_rss()`, `fetch_hackernews()`, `fetch_devto()`, `fetch_reddit()`, `fetch_youtube_channels()` — APIs en paralelo
-  - `collect_all_news()` — Orquesta todo con `asyncio.gather()`
-  - `build_user_message()` — Formatea artículos para Claude
-  - `call_claude()` — HTTP POST a Anthropic Claude API (no Groq)
-  - `send_telegram()` — HTTP POST a Telegram (chunked si >4096 chars, fallback a HTML)
+  - `fetch_rss()` — Obtiene feeds RSS + extrae imágenes si están disponibles
+  - `fetch_youtube_channels()` — Obtiene vídeos YouTube + genera URLs de thumbnails
+  - `collect_all_news()` — Recopila en paralelo con asyncio.gather()
+  - `build_user_message()` — Formatea para Claude
+  - `call_claude()` — Claude API (modelo: haiku-4-5, temperature: 0.3)
+  - `parse_articles()` — Parsea output de Claude, mapea a imágenes originales
+  - `send_telegram_visual()` — Envía imagen + caption (1 noticia = 1 mensaje)
 
-- **sources.yaml** — Configuración declarativa de fuentes (sin tocar código)
-  - RSS feeds: URL y nombre
-  - Hacker News: enabled, top_n
-  - Dev.to: tags, per_page
-  - Reddit subreddits: array de nombres
-  - YouTube channels: array de {name, channel_id}
+- **sources.yaml** — Configuración declarativa (no tocar código)
+  - `rss_feeds`: 13 feeds (Xataka, GitHub, The Verge, etc.)
+  - `youtube_channels`: 13 canales (midudev, Lex Fridman, DotCSV, etc.)
+  - Cada entrada: {name, url/channel_id, tags}
 
-- **.github/workflows/daily.yml** — GitHub Actions scheduler
-  - Cron diario (configurable por zona horaria)
-  - Dispatch manual desde la UI
-  - Variables de entorno inyectadas desde GitHub Secrets
+- **.github/workflows/daily.yml** — GitHub Actions (ejecución horaria)
+  - `cron: "0 * * * *"` — Cada hora UTC
+  - Inyecta: ANTHROPIC_API_KEY, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID
+  - Timeout: 10 minutos
 
 ## Key Design Decisions
 
