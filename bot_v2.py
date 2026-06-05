@@ -46,9 +46,9 @@ REQUEST_TIMEOUT = 15
 SOURCES_FILE = "sources.yaml"
 
 # ─── System Prompt (Formato Visual) ─────────────────────────────────────────
-SYSTEM_PROMPT = """TECH DIGEST BOT — FORMATO VISUAL Y LLAMATIVO
+SYSTEM_PROMPT = """TECH DIGEST BOT — FORMATO VISUAL Y LIMPIO
 
-TU ROL: Editor senior de tecnología. Genera un digest VISUAL, LLAMATIVO y FÁCIL DE LEER.
+TU ROL: Editor senior de tecnología. Genera un digest LIMPIO, VISUAL y FÁCIL DE LEER.
 
 CRITERIOS DE INCLUSIÓN:
 • Dev: Frameworks revolucionarios, CVEs críticos, librerías con 10k+ stars
@@ -62,39 +62,35 @@ CRITERIOS DE RECHAZO:
 • Duplicados (si 3 fuentes cubren lo mismo, solo 1)
 • Productos sin relevancia global
 
-FORMATO DE SALIDA (TEXTO VISUAL PURO):
+FORMATO DE SALIDA (TEXTO VISUAL PURO - TODAS LAS NOTICIAS IGUAL):
 ═════════════════════════════════════════════════════════════════════════════
 
 🔔 TECH DIGEST — {DÍA}, {FECHA}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-🔥 TOP DEL DÍA #1
-
-📰 TITULO DE LA NOTICIA (máx 10 palabras, atractivo)
+#1 📰 TITULO DE LA NOTICIA (máx 10 palabras, atractivo)
 
 Descripción: QUÉ pasó + POR QUÉ IMPORTA en 1-2 frases cortas.
 
-[SI ES VIDEO YOUTUBE: incluir 🎬 VIDEO]
 👥 Fuente: [Nombre]
 🔗 https://url-exacta-de-la-noticia
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+---
 
-💻 DESARROLLO & OPEN SOURCE
+#2 📰 OTRO TITULO NOTICIA
 
-🔹 #2 TITULO NOTICIA
+Descripción de QUÉ + POR QUÉ IMPORTA (1-2 líneas max)
 
-Breve descripción de QUÉ + POR QUÉ IMPORTA (1-2 líneas max)
-
-[SI ES VIDEO: 🎬 VIDEO]
 👥 Fuente: [Nombre]
 🔗 https://url-exacta
 
-[Máximo 5 noticias por sección]
+---
+
+[Máximo 6-8 noticias totales, todas con MISMO FORMATO]
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-📚 PARA LEER DESPUÉS
+📚 PARA LEER DESPUÉS (Quick Links)
 
 📖 Título 1 → https://url-1
 📖 Título 2 → https://url-2
@@ -108,15 +104,14 @@ Breve descripción de QUÉ + POR QUÉ IMPORTA (1-2 líneas max)
 INSTRUCCIONES CRÍTICAS:
 
 1. NO USAR HTML — solo texto plano con emojis y líneas
-2. Títulos: CORTOS (máx 10 palabras), ATRACTIVOS
-3. Descripción: QUÉ + POR QUÉ IMPORTA en 1-2 líneas
-4. URLs: EXACTAMENTE como están en el input, NUNCA inventar
-5. VIDEOS YOUTUBE: Marca con 🎬 VIDEO cuando sea de YouTube
-6. Emojis: Usa números (#1, #2, #3...) para orden visual
+2. TODAS LAS NOTICIAS: Mismo formato #1, #2, #3... sin categorías
+3. Títulos: CORTOS (máx 10 palabras), ATRACTIVOS con emoji
+4. Descripción: QUÉ + POR QUÉ IMPORTA en 1-2 líneas
+5. URLs: EXACTAMENTE como están en el input, NUNCA inventar
+6. Separador: --- (tres guiones) entre noticias
 7. Total: < 3500 caracteres para caber en 2 mensajes
-8. Orden: TOP primero, luego por importancia
-9. Secciones vacías: OMITIR completamente
-10. Tono: Profesional, técnico, directo, SIN exclamaciones
+8. Orden: Por importancia/relevancia
+9. Tono: Profesional, técnico, directo, SIN exclamaciones
 
 MÁXIMA PRIORIDAD: Calidad > Cantidad. Filtra DESPIADADAMENTE por impacto.
 """
@@ -276,21 +271,6 @@ async def collect_all_news(sources: dict) -> list[dict]:
         for feed in sources.get("rss_feeds", []):
             tasks.append(fetch_rss(client, feed["name"], feed["url"]))
 
-        # Hacker News
-        hn = sources.get("hackernews", {})
-        if hn.get("enabled", True):
-            tasks.append(fetch_hackernews(client, hn.get("top_n", 20)))
-
-        # Dev.to
-        devto = sources.get("devto", {})
-        if devto:
-            tasks.append(
-                fetch_devto(client, devto.get("tags", []), devto.get("per_page", 10))
-            )
-
-        # Reddit
-        if sources.get("reddit_subreddits"):
-            tasks.append(fetch_reddit(client, sources["reddit_subreddits"]))
 
         # YouTube
         if sources.get("youtube_channels"):
@@ -368,8 +348,11 @@ async def call_claude(user_message: str) -> str:
 # ════════════════════════════════════════════════════════════════════════════
 
 async def send_telegram(text: str) -> None:
-    """Envía el mensaje a Telegram con formato HTML, fallback a texto plano."""
-    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+    """Envía el mensaje a Telegram con formato HTML + fotos de YouTube."""
+    import re
+
+    url_message = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+    url_photo = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendPhoto"
 
     # Divide si supera 4096 caracteres
     chunks = [text[i : i + 4096] for i in range(0, len(text), 4096)]
@@ -383,12 +366,11 @@ async def send_telegram(text: str) -> None:
                 "parse_mode": "HTML",
                 "disable_web_page_preview": False,
             }
-            r = await client.post(url, json=payload, timeout=15)
+            r = await client.post(url_message, json=payload, timeout=15)
 
             if r.status_code != 200:
                 # Fallback a texto plano
                 log.warning(f"HTML falló ({r.json().get('description', 'Error')}), reintentando en texto plano...")
-                import re
                 plain = chunk
                 plain = re.sub(r'<[^>]+>', '', plain)  # Remover todas las etiquetas HTML
 
@@ -398,7 +380,7 @@ async def send_telegram(text: str) -> None:
                     "parse_mode": "HTML",
                     "disable_web_page_preview": False,
                 }
-                r2 = await client.post(url, json=payload, timeout=15)
+                r2 = await client.post(url_message, json=payload, timeout=15)
                 if r2.status_code == 200:
                     log.info(f"Telegram: chunk {i} de {len(plain)} chars enviado (TEXTO PLANO)")
                 else:
@@ -406,6 +388,24 @@ async def send_telegram(text: str) -> None:
                     r2.raise_for_status()
             else:
                 log.info(f"Telegram: chunk {i} de {len(chunk)} chars enviado OK (HTML)")
+
+        # Enviar thumbnails de videos de YouTube encontrados en el texto
+        youtube_urls = re.findall(r'https://www\.youtube\.com/watch\?v=([a-zA-Z0-9_-]+)', text)
+        youtube_urls += re.findall(r'https://youtu\.be/([a-zA-Z0-9_-]+)', text)
+
+        for video_id in set(youtube_urls):  # Eliminar duplicados
+            thumbnail_url = f"https://img.youtube.com/vi/{video_id}/maxresdefault.jpg"
+            payload = {
+                "chat_id": TELEGRAM_CHAT_ID,
+                "photo": thumbnail_url,
+                "caption": "📺 Video de YouTube",
+                "parse_mode": "HTML",
+            }
+            r = await client.post(url_photo, json=payload, timeout=15)
+            if r.status_code == 200:
+                log.info(f"Telegram: Foto de video {video_id} enviada")
+            else:
+                log.debug(f"Telegram: No se pudo enviar foto del video {video_id}")
 
 
 # ════════════════════════════════════════════════════════════════════════════

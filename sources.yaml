@@ -201,3 +201,14 @@ youtube_channels:
 
   - name: "Eureka Tutoriales"
     handle: "@EurekaTutoriales"
+
+  # Matemáticas & Ciencia
+  - name: "3Blue1Brown"
+    channel_id: "UCYO_jab_esuFRV4b17AJtAg"
+
+  - name: "Veritasium"
+    channel_id: "UCHnyfMqiRRG1u-2MsSQLbXA"
+
+  # Educación Español
+  - name: "EDteam"
+    handle: "@EDteam"
